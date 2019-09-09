@@ -11,20 +11,11 @@ import (
 	"github.com/gorilla/mux"
 )
 
-type chatToken struct {
-	jwt.StandardClaims
-	UserID   uint
-	ClientIP string
-	JoinTime int64
-	Nickname string
-	RoomID   string
-}
-
 var msgServerHTTPRouter *mux.Router
 
 func init() {
 	msgServerHTTPRouter = mux.NewRouter()
-	msgServerHTTPRouter.HandleFunc("/join", joinChat).Methods("POST")
+	msgServerHTTPRouter.HandleFunc("/join", joinChat).Methods("GET")
 	msgServerHTTPRouter.HandleFunc("/users/{nickname}", changeNickname).Methods("PUT")
 	msgServerHTTPRouter.HandleFunc("/rooms", listRooms).Methods("GET")
 	msgServerHTTPRouter.HandleFunc("/rooms", createRoom).Methods("POST")
@@ -33,33 +24,38 @@ func init() {
 func joinChat(w http.ResponseWriter, r *http.Request) {
 	// Get chosen nickname.
 	if err := r.ParseForm(); err != nil {
+		log.Println("error parsing url form")
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
 	// Create token.
 	clientIP := strings.Split(r.RemoteAddr, ":")[0]
-	nickname := r.PostFormValue("nickname")
+	userID := server.userCounter
+	nickname := r.FormValue("nickname")
 	if nickname == "" {
+		log.Println("empty nickname")
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
 	chatToken := &chatToken{
-		UserID:   server.userCounter,
 		ClientIP: clientIP,
 		JoinTime: time.Now().UnixNano(),
+		UserID:   userID,
+		RoomID:   "global",
 		Nickname: nickname,
-		RoomId:   "global",
 	}
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, chatToken)
+	server.rooms["global"].users[userID] = &chatUser{nickname, token}
 	tokenString, err := token.SignedString([]byte("secret"))
 	if err != nil {
+		log.Println("error generating token signed string")
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
-	// Instantiate user and send the nickname and token to the client.
 	responseToken := struct {
-		Token string `json:"token"`
-	}{tokenString}
+		Nickname string `json:"nickname"`
+		Token    string `json:"token"`
+	}{nickname, tokenString}
 	w.Header().Add("Content-Type", "application/json")
 	w.WriteHeader(http.StatusCreated)
 	json.NewEncoder(w).Encode(responseToken)

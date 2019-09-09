@@ -1,21 +1,23 @@
 package main
 
+import "net/http"
+
 type messageServer struct {
-	connectedUsers map[string]string
-	rooms          map[string]*chatRoom
-	userCounter    uint
+	rooms       map[string]*chatRoom
+	userCounter uint
 }
 
 var server *messageServer
 
 func init() {
-	// Server instantiation.
 	server = new(messageServer)
-	server.connectedUsers = map[string]string{}
-	globalRoom := newRoom("global")
 	server.rooms = map[string]*chatRoom{
-		"global": globalRoom,
+		"global": newRoom("global"),
 	}
-	go globalRoom.mainRoutine()
 	server.userCounter = 0
+}
+
+func run() error {
+	go server.rooms["global"].mainRoutine()
+	return http.ListenAndServe(":7000", enableCORS(msgServerHTTPRouter))
 }

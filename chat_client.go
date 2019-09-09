@@ -7,31 +7,31 @@ import (
 )
 
 type chatClient struct {
-	nickname string
+	userID   uint
 	conn     *websocket.Conn
 	sendChan chan string
 }
 
-func newClient(conn *websocket.Conn, nickname string) *chatClient {
+func newClient(conn *websocket.Conn, userID uint) *chatClient {
 	return &chatClient{
-		nickname,
+		userID,
 		conn,
 		make(chan string, 64),
 	}
 }
 
-func (cc *chatClient) receiveRoutine(broadcastChan chan<- string, unregisterChan chan<- string) {
+func (cc *chatClient) receiveRoutine(broadcastChan chan<- string, unregisterChan chan<- uint) {
 	for {
 		msgType, msg, err := cc.conn.ReadMessage()
 		if err != nil {
 			log.Println("ReadMessage: ", err)
 			switch {
 			case websocket.IsCloseError(err, websocket.CloseAbnormalClosure):
-				log.Println("Abnormal Closure")
+				log.Println("AbnormalClosure")
 			case websocket.IsCloseError(err, websocket.CloseNormalClosure, websocket.CloseGoingAway):
-				log.Println("Client disconnected!")
+				log.Println("ClientDisconnected")
 			}
-			unregisterChan <- cc.nickname
+			unregisterChan <- cc.userID
 			close(cc.sendChan)
 			return
 		}
@@ -39,11 +39,11 @@ func (cc *chatClient) receiveRoutine(broadcastChan chan<- string, unregisterChan
 		case websocket.TextMessage:
 			broadcastChan <- string(msg)
 		case websocket.BinaryMessage:
-			log.Println("Received binary message.")
+			log.Println("BinaryMessage")
 		case websocket.PingMessage:
-			log.Println("Received ping message.")
+			log.Println("PingMessage")
 		case websocket.PongMessage:
-			log.Println("Received pong message.")
+			log.Println("PongMessage")
 		}
 	}
 }

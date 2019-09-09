@@ -5,12 +5,16 @@ import (
 	"fmt"
 	"log"
 	"net/http"
-	"strings"
 
 	"github.com/dgrijalva/jwt-go"
 	"github.com/gorilla/mux"
 	"github.com/gorilla/websocket"
 )
+
+type chatUser struct {
+	nickname string
+	token    *jwt.Token
+}
 
 type chatMessage struct {
 	From string `json:"from"`
@@ -21,12 +25,11 @@ type chatRoom struct {
 	id             string
 	wsServer       *http.Server
 	upgrader       *websocket.Upgrader
+	users          map[uint]*chatUser
 	registerChan   chan *chatClient
-	unregisterChan chan string
+	unregisterChan chan uint
 	broadcastChan  chan string
-	clients        map[string]*chatClient
-	incomingAddr   map[string]string
-	incomingNick   map[string]string
+	clients        map[uint]*chatClient
 }
 
 func newRoom(id string) *chatRoom {
@@ -36,29 +39,32 @@ func newRoom(id string) *chatRoom {
 		&websocket.Upgrader{
 			CheckOrigin: checkOrigin,
 		},
+		map[uint]*chatUser{},
 		make(chan *chatClient, 32),
-		make(chan string, 32),
+		make(chan uint, 32),
 		make(chan string, 128),
-		map[string]*chatClient{},
-		map[string]string{},
-		map[string]string{},
+		map[uint]*chatClient{},
 	}
 	router := mux.NewRouter()
-	router.HandleFunc("/ws", handleWs).Methods("GET")
+	router.HandleFunc("/ws", room.handleWs).Methods("GET")
+	room.wsServer.Handler = enableCORS(router)
+	room.wsServer.Addr = ":7001"
 	return room
 }
 
 func (cr *chatRoom) mainRoutine() {
+	go func() {
+		cr.wsServer.ListenAndServe()
+	}()
 	for {
 		select {
 		case client, ok := <-cr.registerChan:
 			if ok {
-				cr.clients[client.nickname] = client
+				cr.clients[client.userID] = client
 				go client.sendRoutine()
-				go client.receiveRoutine(cr.broadcastChan, cr.unregisterChan)
 				var message chatMessage
 				message.From = "system"
-				message.Body = fmt.Sprintf("%s joined", client.nickname)
+				message.Body = fmt.Sprintf("%s joined", cr.users[client.userID].nickname)
 				encodedMsg, err := json.Marshal(message)
 				if err != nil {
 					log.Println(err.Error())
@@ -66,10 +72,10 @@ func (cr *chatRoom) mainRoutine() {
 					cr.broadcastChan <- string(encodedMsg)
 				}
 			}
-		case nickname, ok := <-cr.unregisterChan:
+		case userID, ok := <-cr.unregisterChan:
 			if ok {
-				delete(cr.clients, nickname)
-				cr.broadcastChan <- fmt.Sprintf("%s left", nickname)
+				delete(cr.clients, userID)
+				cr.broadcastChan <- fmt.Sprintf("%s left", cr.users[userID].nickname)
 			}
 		case message, ok := <-cr.broadcastChan:
 			if ok {
@@ -81,53 +87,18 @@ func (cr *chatRoom) mainRoutine() {
 	}
 }
 
-func checkOrigin(r *http.Request) bool {
-	if err := r.ParseForm(); err != nil {
-		log.Println(err.Error())
-		return false
-	}
-	nickname := r.FormValue("nickname")
-	clientAddr, ok := server.connectedUsers[nickname]
-	if !ok {
-		log.Println("user not found")
-		return false
-	}
-	clientIP := strings.Split(r.RemoteAddr, ":")[0]
-	if clientAddr != clientIP {
-		log.Println("different origins")
-		log.Printf("%s:%s", clientAddr, r.RemoteAddr)
-		return false
-	}
-	return true
-}
-
-func handleWs(w http.ResponseWriter, r *http.Request) {
-	// Get the token.
-	if err := r.ParseForm(); err != nil {
-		log.Println(err.Error())
-		return
-	}
-	tokenString := r.FormValue("token")
-	if tokenString == "" {
-		w.WriteHeader(http.StatusForbidden)
-		return
-	}
-	log.Println(tokenString)
-	// Parse token.
-	chatToken := &chatToken{}
-	token, err := jwt.ParseWithClaims(tokenString, chatToken, func(tkn *jwt.Token) (interface{}, error) {
-		return []byte("secret"), nil
-	})
-	if err != nil || !token.Valid {
-		w.WriteHeader(http.StatusForbidden)
-		return
-	}
-	// Establish connection.
-	conn, err := server.upgrader.Upgrade(w, r, nil)
+func (cr *chatRoom) handleWs(w http.ResponseWriter, r *http.Request) {
+	conn, err := cr.upgrader.Upgrade(w, r, nil)
 	if err != nil {
 		log.Println(err.Error())
 		return
 	}
-	client := newClient(conn, chatToken.Nickname)
+	userID, ok := r.Context().Value("userID").(uint)
+	if !ok {
+		log.Println("userID not in request context")
+		return
+	}
+	client := newClient(conn, userID)
 	server.rooms["global"].registerChan <- client
+	client.receiveRoutine(cr.broadcastChan, cr.unregisterChan)
 }
