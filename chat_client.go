@@ -7,14 +7,12 @@ import (
 )
 
 type chatClient struct {
-	userID   uint
 	conn     *websocket.Conn
 	sendChan chan string
 }
 
 func newClient(conn *websocket.Conn, userID uint) *chatClient {
 	return &chatClient{
-		userID,
 		conn,
 		make(chan string, 64),
 	}
@@ -31,7 +29,6 @@ func (cc *chatClient) receiveRoutine(broadcastChan chan<- string, unregisterChan
 			case websocket.IsCloseError(err, websocket.CloseNormalClosure, websocket.CloseGoingAway):
 				log.Println("ClientDisconnected")
 			}
-			unregisterChan <- cc.userID
 			close(cc.sendChan)
 			return
 		}

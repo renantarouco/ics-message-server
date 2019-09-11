@@ -1,10 +1,9 @@
 package main
 
 import (
-	"context"
 	"errors"
-	"log"
 	"net/http"
+	"regexp"
 
 	"github.com/dgrijalva/jwt-go"
 	"github.com/gorilla/handlers"
@@ -16,9 +15,10 @@ type chatToken struct {
 	ClientIP string
 	JoinTime int64
 	RoomID   string
-	UserID   uint
-	Nickname string
+	UserID   string
 }
+
+var jwtKey = []byte("secret")
 
 func enableCORS(router *mux.Router) http.Handler {
 	methodsOk := handlers.AllowedMethods([]string{"GET", "HEAD", "POST", "PUT", "OPTIONS"})
@@ -35,56 +35,13 @@ func enableCORS(router *mux.Router) http.Handler {
 	return handlers.CORS(headersOk, originsOk, methodsOk)(router)
 }
 
-func validateToken(tokenString string) (*chatToken, *jwt.Token, error) {
-	if tokenString == "" {
-		return nil, nil, errors.New("empty token")
+func validateNickname(nickname string) error {
+	matched, err := regexp.MatchString("^[_a-zA-Z][_a-zA-Z-0-9]*", nickname)
+	if !matched {
+		return errors.New("invalid nickname")
 	}
-	log.Printf("validating token %s", tokenString)
-	chatToken := new(chatToken)
-	token, err := jwt.ParseWithClaims(tokenString, chatToken, func(tkn *jwt.Token) (interface{}, error) {
-		return []byte("secret"), nil
-	})
 	if err != nil {
-		return nil, nil, err
+		return err
 	}
-	if !token.Valid {
-		return nil, nil, errors.New("invalid token")
-	}
-	return chatToken, token, nil
-}
-
-func checkOrigin(r *http.Request) bool {
-	if err := r.ParseForm(); err != nil {
-		log.Println(err.Error())
-		return false
-	}
-	tokenString := r.FormValue("token")
-	chatToken, _, err := validateToken(tokenString)
-	if err != nil {
-		log.Println(err.Error())
-		return false
-	}
-	userRoom, ok := server.rooms[chatToken.RoomID]
-	if !ok {
-		log.Println("wrong room")
-		return false
-	}
-	user := userRoom.users[chatToken.UserID]
-	if !ok {
-		log.Println("user not in this room")
-		return false
-	}
-	userToken := user.token
-	signedString, err := userToken.SignedString([]byte("secret"))
-	if err != nil {
-		log.Println(err.Error())
-		return false
-	}
-	if tokenString != signedString {
-		log.Println("tokens don't match")
-		return false
-	}
-	ctx := context.WithValue(r.Context(), "userID", chatToken.UserID)
-	r = r.WithContext(ctx)
-	return true
+	return nil
 }

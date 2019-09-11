@@ -36,9 +36,7 @@ func newRoom(id string) *chatRoom {
 	room := &chatRoom{
 		id,
 		new(http.Server),
-		&websocket.Upgrader{
-			CheckOrigin: checkOrigin,
-		},
+		&websocket.Upgrader{},
 		map[uint]*chatUser{},
 		make(chan *chatClient, 32),
 		make(chan uint, 32),
@@ -99,6 +97,5 @@ func (cr *chatRoom) handleWs(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	client := newClient(conn, userID)
-	server.rooms["global"].registerChan <- client
 	client.receiveRoutine(cr.broadcastChan, cr.unregisterChan)
 }
