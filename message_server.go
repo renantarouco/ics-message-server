@@ -13,9 +13,9 @@ import (
 )
 
 type messageServer struct {
-	httpServer  *http.Server
-	upgrader    *websocket.Upgrader
-	userCounter uint
+	httpServer *http.Server
+	upgrader   *websocket.Upgrader
+	rooms      map[string]*chatRoom
 }
 
 var server *messageServer
@@ -28,10 +28,20 @@ func init() {
 	router.HandleFunc("/join", joinHandler).Methods("GET")
 	router.HandleFunc("/ws", wsHandler).Methods("GET")
 	server.httpServer.Handler = enableCORS(router)
-	server.userCounter = 0
+	server.upgrader = &websocket.Upgrader{
+		CheckOrigin: func(r *http.Request) bool {
+			return true
+		},
+	}
+	server.rooms = map[string]*chatRoom{
+		"global": newRoom("global"),
+	}
 }
 
 func run() error {
+	for _, room := range server.rooms {
+		go room.mainRoutine()
+	}
 	return server.httpServer.ListenAndServe()
 }
 
@@ -48,17 +58,17 @@ func joinHandler(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
-	chatToken := &chatToken{
+	claims := &chatClaims{
 		ClientIP: clientIP,
 		JoinTime: time.Now().UnixNano(),
 		RoomID:   "global",
 		UserID:   nickname,
 	}
-	jwtToken := jwt.NewWithClaims(jwt.SigningMethodHS256, chatToken)
+	jwtToken := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
 	tokenString, err := jwtToken.SignedString(jwtKey)
 	if err != nil {
 		log.Println(err.Error())
-		w.WriteHeader(http.StatusBadRequest)
+		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
 	responseToken := struct {
@@ -71,5 +81,31 @@ func joinHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func wsHandler(w http.ResponseWriter, r *http.Request) {
-
+	if err := r.ParseForm(); err != nil {
+		log.Println(err.Error())
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+	tokenString := r.FormValue("token")
+	claims, err := validateToken(tokenString)
+	if err != nil {
+		log.Println(err.Error())
+		w.WriteHeader(http.StatusUnauthorized)
+		return
+	}
+	nickname := r.FormValue("nickname")
+	if nickname != claims.UserID {
+		log.Println("nicknames don't match")
+		w.WriteHeader(http.StatusUnauthorized)
+		return
+	}
+	conn, err := server.upgrader.Upgrade(w, r, nil)
+	if err != nil {
+		log.Println(err.Error())
+		return
+	}
+	globalRoom := server.rooms["global"]
+	client := newClient(nickname, conn, globalRoom.broadcastChan)
+	globalRoom.registerChan <- client
+	client.receiveRoutine()
 }

@@ -10,12 +10,12 @@ import (
 	"github.com/gorilla/mux"
 )
 
-type chatToken struct {
+type chatClaims struct {
+	ClientIP string `json:"client_ip"`
+	JoinTime int64  `json:"join_time"`
+	RoomID   string `json:"room_id"`
+	UserID   string `json:"user_id"`
 	jwt.StandardClaims
-	ClientIP string
-	JoinTime int64
-	RoomID   string
-	UserID   string
 }
 
 var jwtKey = []byte("secret")
@@ -44,4 +44,21 @@ func validateNickname(nickname string) error {
 		return err
 	}
 	return nil
+}
+
+func validateToken(token string) (*chatClaims, error) {
+	if token == "" {
+		return nil, errors.New("empty token")
+	}
+	claims := &chatClaims{}
+	jwtToken, err := jwt.ParseWithClaims(token, claims, func(*jwt.Token) (interface{}, error) {
+		return jwtKey, nil
+	})
+	if err != nil {
+		return nil, err
+	}
+	if !jwtToken.Valid {
+		return nil, errors.New("invalid token")
+	}
+	return claims, nil
 }

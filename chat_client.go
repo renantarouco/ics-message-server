@@ -1,26 +1,31 @@
 package main
 
 import (
+	"encoding/json"
 	"log"
 
 	"github.com/gorilla/websocket"
 )
 
 type chatClient struct {
-	conn     *websocket.Conn
-	sendChan chan string
+	nickname      string
+	conn          *websocket.Conn
+	broadcastChan chan chatMessage
+	sendChan      chan chatMessage
 }
 
-func newClient(conn *websocket.Conn, userID uint) *chatClient {
+func newClient(nickname string, conn *websocket.Conn, broadcastChan chan chatMessage) *chatClient {
 	return &chatClient{
+		nickname,
 		conn,
-		make(chan string, 64),
+		broadcastChan,
+		make(chan chatMessage, 64),
 	}
 }
 
-func (cc *chatClient) receiveRoutine(broadcastChan chan<- string, unregisterChan chan<- uint) {
+func (client *chatClient) receiveRoutine() {
 	for {
-		msgType, msg, err := cc.conn.ReadMessage()
+		msgType, messageData, err := client.conn.ReadMessage()
 		if err != nil {
 			log.Println("ReadMessage: ", err)
 			switch {
@@ -29,12 +34,11 @@ func (cc *chatClient) receiveRoutine(broadcastChan chan<- string, unregisterChan
 			case websocket.IsCloseError(err, websocket.CloseNormalClosure, websocket.CloseGoingAway):
 				log.Println("ClientDisconnected")
 			}
-			close(cc.sendChan)
 			return
 		}
 		switch msgType {
 		case websocket.TextMessage:
-			broadcastChan <- string(msg)
+			client.broadcastChan <- chatMessage{client.nickname, string(messageData)}
 		case websocket.BinaryMessage:
 			log.Println("BinaryMessage")
 		case websocket.PingMessage:
@@ -45,12 +49,16 @@ func (cc *chatClient) receiveRoutine(broadcastChan chan<- string, unregisterChan
 	}
 }
 
-func (cc *chatClient) sendRoutine() {
+func (client *chatClient) sendRoutine() {
 	for {
-		msg, ok := <-cc.sendChan
-		if ok {
-			cc.conn.WriteMessage(websocket.TextMessage, []byte(msg))
-			continue
+		message, ok := <-client.sendChan
+		if !ok {
+			return
 		}
+		encodedMessage, err := json.Marshal(message)
+		if err != nil {
+			log.Printf("error decoding message from %s to %s", message.From, client.nickname)
+		}
+		client.conn.WriteMessage(websocket.TextMessage, encodedMessage)
 	}
 }
