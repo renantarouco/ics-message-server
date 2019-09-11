@@ -15,12 +15,12 @@ type chatClient struct {
 }
 
 func newClient(nickname string, conn *websocket.Conn, broadcastChan chan chatMessage) *chatClient {
-	return &chatClient{
-		nickname,
-		conn,
-		broadcastChan,
-		make(chan chatMessage, 64),
-	}
+	client := new(chatClient)
+	client.nickname = nickname
+	client.conn = conn
+	client.broadcastChan = broadcastChan
+	client.sendChan = make(chan chatMessage, 64)
+	return client
 }
 
 func (client *chatClient) receiveRoutine() {

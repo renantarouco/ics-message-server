@@ -107,5 +107,6 @@ func wsHandler(w http.ResponseWriter, r *http.Request) {
 	globalRoom := server.rooms["global"]
 	client := newClient(nickname, conn, globalRoom.broadcastChan)
 	globalRoom.registerChan <- client
-	client.receiveRoutine()
+	for {
+	}
 }
