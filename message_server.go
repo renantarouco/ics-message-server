@@ -25,6 +25,7 @@ func init() {
 	server.httpServer = new(http.Server)
 	server.httpServer.Addr = ":7000"
 	router := mux.NewRouter()
+	router.Use(validateTokenMiddleware)
 	router.HandleFunc("/join", joinHandler).Methods("GET")
 	router.HandleFunc("/ws", wsHandler).Methods("GET")
 	server.httpServer.Handler = enableCORS(router)
@@ -108,4 +109,37 @@ func wsHandler(w http.ResponseWriter, r *http.Request) {
 	client := newClient(nickname, conn)
 	globalRoom.registerChan <- client
 	<-client.doneChan
+	log.Printf("%s disconnected", client.nickname)
+}
+
+func validateTokenMiddleware(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		noTokenRoutes := []string{"/join", "/ws"}
+		requestPath := r.URL.Path
+		for _, route := range noTokenRoutes {
+			if requestPath == route {
+				next.ServeHTTP(w, r)
+				return
+			}
+		}
+		if err := r.ParseForm(); err != nil {
+			log.Println(err.Error())
+			w.WriteHeader(http.StatusBadRequest)
+			return
+		}
+		tokenString := r.FormValue("token")
+		claims, err := validateToken(tokenString)
+		if err != nil {
+			log.Println(err.Error())
+			w.WriteHeader(http.StatusUnauthorized)
+			return
+		}
+		nickname := r.FormValue("nickname")
+		if nickname != claims.UserID {
+			log.Println("nicknames don't match")
+			w.WriteHeader(http.StatusUnauthorized)
+			return
+		}
+		next.ServeHTTP(w, r)
+	})
 }
