@@ -29,9 +29,7 @@ func init() {
 	router.HandleFunc("/ws", wsHandler).Methods("GET")
 	server.httpServer.Handler = enableCORS(router)
 	server.upgrader = &websocket.Upgrader{
-		CheckOrigin: func(r *http.Request) bool {
-			return true
-		},
+		CheckOrigin: upgraderCheckOrigin,
 	}
 	server.rooms = map[string]*chatRoom{
 		"global": newRoom("global"),
@@ -43,6 +41,25 @@ func run() error {
 		go room.mainRoutine()
 	}
 	return server.httpServer.ListenAndServe()
+}
+
+func upgraderCheckOrigin(r *http.Request) bool {
+	if err := r.ParseForm(); err != nil {
+		log.Println(err.Error())
+		return false
+	}
+	tokenString := r.FormValue("token")
+	claims, err := validateToken(tokenString)
+	if err != nil {
+		log.Println(err.Error())
+		return false
+	}
+	nickname := r.FormValue("nickname")
+	if nickname != claims.UserID {
+		log.Println("nicknames don't match")
+		return false
+	}
+	return true
 }
 
 func joinHandler(w http.ResponseWriter, r *http.Request) {
@@ -81,32 +98,14 @@ func joinHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func wsHandler(w http.ResponseWriter, r *http.Request) {
-	if err := r.ParseForm(); err != nil {
-		log.Println(err.Error())
-		w.WriteHeader(http.StatusBadRequest)
-		return
-	}
-	tokenString := r.FormValue("token")
-	claims, err := validateToken(tokenString)
-	if err != nil {
-		log.Println(err.Error())
-		w.WriteHeader(http.StatusUnauthorized)
-		return
-	}
 	nickname := r.FormValue("nickname")
-	if nickname != claims.UserID {
-		log.Println("nicknames don't match")
-		w.WriteHeader(http.StatusUnauthorized)
-		return
-	}
 	conn, err := server.upgrader.Upgrade(w, r, nil)
 	if err != nil {
 		log.Println(err.Error())
 		return
 	}
 	globalRoom := server.rooms["global"]
-	client := newClient(nickname, conn, globalRoom.broadcastChan)
+	client := newClient(nickname, conn)
 	globalRoom.registerChan <- client
-	for {
-	}
+	<-client.doneChan
 }

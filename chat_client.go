@@ -8,22 +8,22 @@ import (
 )
 
 type chatClient struct {
-	nickname      string
-	conn          *websocket.Conn
-	broadcastChan chan chatMessage
-	sendChan      chan chatMessage
+	nickname string
+	conn     *websocket.Conn
+	sendChan chan chatMessage
+	doneChan chan struct{}
 }
 
-func newClient(nickname string, conn *websocket.Conn, broadcastChan chan chatMessage) *chatClient {
+func newClient(nickname string, conn *websocket.Conn) *chatClient {
 	client := new(chatClient)
 	client.nickname = nickname
 	client.conn = conn
-	client.broadcastChan = broadcastChan
 	client.sendChan = make(chan chatMessage, 64)
+	client.doneChan = make(chan struct{})
 	return client
 }
 
-func (client *chatClient) receiveRoutine() {
+func (client *chatClient) receiveRoutine(unregisterChan chan *chatClient, broadcastChan chan chatMessage) {
 	for {
 		msgType, messageData, err := client.conn.ReadMessage()
 		if err != nil {
@@ -34,11 +34,13 @@ func (client *chatClient) receiveRoutine() {
 			case websocket.IsCloseError(err, websocket.CloseNormalClosure, websocket.CloseGoingAway):
 				log.Println("ClientDisconnected")
 			}
+			unregisterChan <- client
+			client.doneChan <- struct{}{}
 			return
 		}
 		switch msgType {
 		case websocket.TextMessage:
-			client.broadcastChan <- chatMessage{client.nickname, string(messageData)}
+			broadcastChan <- chatMessage{client.nickname, string(messageData)}
 		case websocket.BinaryMessage:
 			log.Println("BinaryMessage")
 		case websocket.PingMessage:
