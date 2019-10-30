@@ -10,7 +10,7 @@ import (
 var APIRouter = mux.NewRouter()
 
 func init() {
-	APIRouter.HandleFunc("/join", JoinHandler).Name("join").Methods(http.MethodPost)
+	APIRouter.HandleFunc("/auth", AuthHandler).Name("auth").Methods(http.MethodPost)
 }
 
 func init() {}

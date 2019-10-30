@@ -3,24 +3,31 @@ package api
 import (
 	"encoding/json"
 	"net/http"
+
+	"github.com/renantarouco/ics-message-server/server"
 )
 
-// JoinHandler - The handler for /join endpoint. Receives via POST an URL
-// encoded nickname field and returns a JSON object with the nickname validated
-// and a token for future requests.
-func JoinHandler(w http.ResponseWriter, r *http.Request) {
+var s = server.NewMessageServer()
+
+// AuthHandler - The authentication handler. Receives via POST an URL encoded
+// nickname field and returns a JSON object with a token for future requests
+func AuthHandler(w http.ResponseWriter, r *http.Request) {
 	if err := r.ParseForm(); err != nil {
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
 	nickname := r.FormValue("nickname")
-	if nickname == "" {
+	if err := ValidateNickname(nickname); err != nil {
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
+	token, err := s.AuthenticateUser(nickname)
+	if err != nil {
+		w.WriteHeader(http.StatusForbidden)
+		return
+	}
 	responseToken := map[string]interface{}{
-		"nickname": nickname,
-		"token":    "a09df0unfoijsa-09enf",
+		"token": token,
 	}
 	w.WriteHeader(http.StatusCreated)
 	w.Header().Set("Content-Type", "application/json")

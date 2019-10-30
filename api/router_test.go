@@ -10,7 +10,7 @@ import (
 )
 
 var routesAllowedMethods = map[string][]string{
-	"join": []string{"POST"},
+	"auth": []string{"POST"},
 }
 
 func TestRoutesAllowedMethods(t *testing.T) {

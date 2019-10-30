@@ -1,13 +1,7 @@
 package main
 
-import (
-	"fmt"
-	"log"
-)
+import "fmt"
 
 func main() {
-	fmt.Println("ICS - Message Server")
-	if err := run(); err != nil {
-		log.Fatalln(err.Error())
-	}
+	fmt.Println("running server...")
 }
