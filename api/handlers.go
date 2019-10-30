@@ -3,6 +3,7 @@ package api
 import (
 	"encoding/json"
 	"net/http"
+	"regexp"
 )
 
 // JoinHandler - The handler for /join endpoint. Receives via POST an URL
@@ -15,6 +16,10 @@ func JoinHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	nickname := r.FormValue("nickname")
 	if nickname == "" {
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+	if match, _ := regexp.MatchString("^[a-zA-Z | _][a-zA-Z0-9 | _ | -]*$", nickname); !match {
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
