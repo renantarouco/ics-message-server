@@ -11,7 +11,7 @@ import (
 )
 
 var expectedRoutes = map[string][]string{
-	"join": []string{http.MethodPost},
+	"auth": []string{http.MethodPost},
 }
 
 func TestAllExpectedRoutesImplemented(t *testing.T) {
