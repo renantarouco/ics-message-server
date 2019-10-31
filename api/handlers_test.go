@@ -20,8 +20,8 @@ func TestAuthHandler(t *testing.T) {
 		}
 		rr := httptest.NewRecorder()
 		APIRouter.ServeHTTP(rr, req)
-		if status := rr.Code; status != http.StatusBadRequest {
-			t.Errorf("wrong code, wanted %v got %v", http.StatusBadRequest, status)
+		if status := rr.Code; status != http.StatusForbidden {
+			t.Errorf("wrong code, wanted %v got %v", http.StatusForbidden, status)
 		}
 	})
 	t.Run("invalid-nickname", func(t *testing.T) {
@@ -32,8 +32,8 @@ func TestAuthHandler(t *testing.T) {
 		req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 		rr := httptest.NewRecorder()
 		APIRouter.ServeHTTP(rr, req)
-		if status := rr.Code; status != http.StatusBadRequest {
-			t.Errorf("wrong code, wanted %v got %v", http.StatusBadRequest, status)
+		if status := rr.Code; status != http.StatusForbidden {
+			t.Errorf("wrong code, wanted %v got %v", http.StatusForbidden, status)
 		}
 	})
 	t.Run("valid-nickname", func(t *testing.T) {

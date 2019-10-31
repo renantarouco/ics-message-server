@@ -11,6 +11,7 @@ type MessageServer struct {
 // NewMessageServer - Returns a fresh instance of a MessageServer
 func NewMessageServer() *MessageServer {
 	return &MessageServer{
+		ID:    "unamed",
 		Users: map[string]string{},
 	}
 }
@@ -19,6 +20,9 @@ func NewMessageServer() *MessageServer {
 func (s *MessageServer) AuthenticateUser(nickname string) (string, error) {
 	if _, ok := s.Users[nickname]; ok {
 		return "", fmt.Errorf("%s already in use", nickname)
+	}
+	if err := ValidateNickname(nickname); err != nil {
+		return "", err
 	}
 	token, err := NewTokenString(s.ID, nickname)
 	if err != nil {

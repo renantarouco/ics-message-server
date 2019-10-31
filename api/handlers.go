@@ -17,10 +17,6 @@ func AuthHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	nickname := r.FormValue("nickname")
-	if err := ValidateNickname(nickname); err != nil {
-		w.WriteHeader(http.StatusBadRequest)
-		return
-	}
 	token, err := s.AuthenticateUser(nickname)
 	if err != nil {
 		w.WriteHeader(http.StatusForbidden)

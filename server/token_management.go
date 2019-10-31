@@ -8,7 +8,7 @@ import (
 
 var jwtKey = []byte("secret_key")
 
-// NewTokenString - Creates a new token for the server
+// NewTokenString - Creates a new JWT token for a client
 func NewTokenString(subject, issuer string) (string, error) {
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, &jwt.StandardClaims{
 		Subject:  subject,
