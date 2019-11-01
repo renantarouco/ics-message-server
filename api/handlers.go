@@ -16,7 +16,7 @@ func AuthHandler(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
-	nickname := r.FormValue("nickname")
+	nickname := r.PostFormValue("nickname")
 	token, err := s.AuthenticateUser(nickname)
 	if err != nil {
 		w.WriteHeader(http.StatusForbidden)
@@ -28,4 +28,32 @@ func AuthHandler(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusCreated)
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(responseToken)
+}
+
+// WsHandler - The endpoint to connect via Websockets and start sending and
+// receiving messages
+func WsHandler(w http.ResponseWriter, r *http.Request) {
+
+}
+
+// NicknameHandler - Handles the attempt to chang the nickname
+func NicknameHandler(w http.ResponseWriter, r *http.Request) {
+
+}
+
+// RoomsHandler - The endpoint to create a new room when POST request is sent
+// and switch user's room when PUT is sent
+func RoomsHandler(w http.ResponseWriter, r *http.Request) {
+
+}
+
+// UsersHandler - Returns the list of all the users in the same room as the one
+// requesting
+func UsersHandler(w http.ResponseWriter, r *http.Request) {
+
+}
+
+// ExitHandler - Gracefully disconnects the user from the server
+func ExitHandler(w http.ResponseWriter, r *http.Request) {
+
 }

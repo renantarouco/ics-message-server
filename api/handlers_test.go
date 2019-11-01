@@ -4,6 +4,8 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"net/url"
+	"strconv"
 	"strings"
 	"testing"
 
@@ -13,76 +15,39 @@ import (
 var jwtKey = []byte("secret_key")
 
 func TestAuthHandler(t *testing.T) {
-	t.Run("no-nickname", func(t *testing.T) {
-		req, err := http.NewRequest("POST", "/auth", strings.NewReader(""))
+	nicknameTest := func(t *testing.T, httpMethod, route, nickname string, expectedStatusCode int) *httptest.ResponseRecorder {
+		formData := url.Values{}
+		formData.Set("nickname", nickname)
+		req, err := http.NewRequest(httpMethod, route, strings.NewReader(formData.Encode()))
+		req.Header.Add("Content-Type", "application/x-www-form-urlencoded")
+		req.Header.Add("Content-Length", strconv.Itoa(len(formData.Encode())))
 		if err != nil {
 			t.Error(err)
 		}
 		rr := httptest.NewRecorder()
 		APIRouter.ServeHTTP(rr, req)
-		if status := rr.Code; status != http.StatusForbidden {
-			t.Errorf("wrong code, wanted %v got %v", http.StatusForbidden, status)
+		if status := rr.Code; status != expectedStatusCode {
+			t.Errorf("wrong code, wanted %v got %v", expectedStatusCode, status)
 		}
+		return rr
+	}
+	t.Run("no-nickname", func(t *testing.T) {
+		nicknameTest(t, http.MethodPost, "/auth", "", http.StatusForbidden)
 	})
 	t.Run("invalid-nickname", func(t *testing.T) {
-		req, err := http.NewRequest("POST", "/auth", strings.NewReader("nickname=1test1"))
-		if err != nil {
-			t.Error(err)
-		}
-		req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
-		rr := httptest.NewRecorder()
-		APIRouter.ServeHTTP(rr, req)
-		if status := rr.Code; status != http.StatusForbidden {
-			t.Errorf("wrong code, wanted %v got %v", http.StatusForbidden, status)
-		}
+		nicknameTest(t, http.MethodPost, "/auth", "1nick1", http.StatusForbidden)
 	})
 	t.Run("valid-nickname", func(t *testing.T) {
-		req, err := http.NewRequest("POST", "/auth", strings.NewReader("nickname=test1"))
-		if err != nil {
-			t.Error(err)
-		}
-		req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
-		rr := httptest.NewRecorder()
-		APIRouter.ServeHTTP(rr, req)
-		if status := rr.Code; status != http.StatusCreated {
-			t.Errorf("wrong code, wanted %v got %v", http.StatusCreated, status)
-		}
+		nicknameTest(t, http.MethodPost, "/auth", "nick1", http.StatusCreated)
 	})
 	t.Run("duplicate-nickname", func(t *testing.T) {
-		req, err := http.NewRequest("POST", "/auth", strings.NewReader("nickname=test2"))
-		if err != nil {
-			t.Error(err)
-		}
-		req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
-		rr := httptest.NewRecorder()
-		APIRouter.ServeHTTP(rr, req)
-		if status := rr.Code; status != http.StatusCreated {
-			t.Errorf("wrong code, wanted %v got %v", http.StatusCreated, status)
-		}
-		req, err = http.NewRequest("POST", "/auth", strings.NewReader("nickname=test2"))
-		if err != nil {
-			t.Error(err)
-		}
-		req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
-		rr = httptest.NewRecorder()
-		APIRouter.ServeHTTP(rr, req)
-		if status := rr.Code; status != http.StatusForbidden {
-			t.Errorf("wrong code, wanted %v got %v", http.StatusForbidden, status)
-		}
+		nicknameTest(t, http.MethodPost, "/auth", "nick2", http.StatusCreated)
+		nicknameTest(t, http.MethodPost, "/auth", "nick2", http.StatusForbidden)
 	})
 	t.Run("valid-token", func(t *testing.T) {
-		req, err := http.NewRequest("POST", "/auth", strings.NewReader("nickname=test3"))
-		if err != nil {
-			t.Error(err)
-		}
-		req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
-		rr := httptest.NewRecorder()
-		APIRouter.ServeHTTP(rr, req)
-		if status := rr.Code; status != http.StatusCreated {
-			t.Errorf("wrong code, wanted %v got %v", http.StatusCreated, status)
-		}
+		rr := nicknameTest(t, http.MethodPost, "/auth", "nick3", http.StatusCreated)
 		var bodyMap map[string]string
-		err = json.Unmarshal(rr.Body.Bytes(), &bodyMap)
+		err := json.Unmarshal(rr.Body.Bytes(), &bodyMap)
 		if err != nil {
 			t.Error(err)
 		}
@@ -101,3 +66,13 @@ func TestAuthHandler(t *testing.T) {
 		}
 	})
 }
+
+func TestWsHandler(t *testing.T) {}
+
+func TestNicknameHandler(t *testing.T) {}
+
+func TestRoomsHandler(t *testing.T) {}
+
+func TestUsersHandler(t *testing.T) {}
+
+func TestExitHandler(t *testing.T) {}
