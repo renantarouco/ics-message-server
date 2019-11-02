@@ -11,12 +11,13 @@ import (
 )
 
 var expectedRoutes = map[string][]string{
-	"auth":     []string{http.MethodPost},
-	"ws":       []string{http.MethodGet},
-	"nickname": []string{http.MethodPut},
-	"rooms":    []string{http.MethodPost, http.MethodPut},
-	"users":    []string{http.MethodGet},
-	"exit":     []string{http.MethodGet},
+	"auth":        []string{http.MethodPost},
+	"ws":          []string{http.MethodGet},
+	"nickname":    []string{http.MethodPut},
+	"create-room": []string{http.MethodPost},
+	"switch-room": []string{http.MethodPut},
+	"users":       []string{http.MethodGet},
+	"exit":        []string{http.MethodGet},
 }
 
 func TestAllExpectedRoutesImplemented(t *testing.T) {

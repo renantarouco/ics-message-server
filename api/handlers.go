@@ -41,9 +41,13 @@ func NicknameHandler(w http.ResponseWriter, r *http.Request) {
 
 }
 
-// RoomsHandler - The endpoint to create a new room when POST request is sent
-// and switch user's room when PUT is sent
-func RoomsHandler(w http.ResponseWriter, r *http.Request) {
+// CreateRoomHandler - The endpoint to create a new room when POST is sent
+func CreateRoomHandler(w http.ResponseWriter, r *http.Request) {
+
+}
+
+// SwitchRoomHandler - The endpoint to switch user's room when PUT is sent
+func SwitchRoomHandler(w http.ResponseWriter, r *http.Request) {
 
 }
 

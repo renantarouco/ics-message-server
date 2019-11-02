@@ -127,8 +127,8 @@ func validateTokenMiddleware(next http.Handler) http.Handler {
 			w.WriteHeader(http.StatusBadRequest)
 			return
 		}
-		tokenString := r.FormValue("token")
-		claims, err := validateToken(tokenString)
+		tokenStr := r.FormValue("token")
+		claims, err := validateToken(tokenStr)
 		if err != nil {
 			log.Println(err.Error())
 			w.WriteHeader(http.StatusUnauthorized)

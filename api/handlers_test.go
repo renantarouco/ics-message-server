@@ -8,8 +8,6 @@ import (
 	"strconv"
 	"strings"
 	"testing"
-
-	"github.com/dgrijalva/jwt-go"
 )
 
 var jwtKey = []byte("secret_key")
@@ -19,11 +17,11 @@ func TestAuthHandler(t *testing.T) {
 		formData := url.Values{}
 		formData.Set("nickname", nickname)
 		req, err := http.NewRequest(httpMethod, route, strings.NewReader(formData.Encode()))
-		req.Header.Add("Content-Type", "application/x-www-form-urlencoded")
-		req.Header.Add("Content-Length", strconv.Itoa(len(formData.Encode())))
 		if err != nil {
 			t.Error(err)
 		}
+		req.Header.Add("Content-Type", "application/x-www-form-urlencoded")
+		req.Header.Add("Content-Length", strconv.Itoa(len(formData.Encode())))
 		rr := httptest.NewRecorder()
 		APIRouter.ServeHTTP(rr, req)
 		if status := rr.Code; status != expectedStatusCode {
@@ -55,19 +53,16 @@ func TestAuthHandler(t *testing.T) {
 		if !ok {
 			t.Error("body doesn't contain 'token' key")
 		}
-		token, err := jwt.ParseWithClaims(tokenStr, &jwt.StandardClaims{}, func(*jwt.Token) (interface{}, error) {
-			return jwtKey, nil
-		})
+		err = IsTokenValid(tokenStr)
 		if err != nil {
 			t.Error(err)
-		}
-		if !token.Valid {
-			t.Error("invalid token received")
 		}
 	})
 }
 
-func TestWsHandler(t *testing.T) {}
+func TestWsHandler(t *testing.T) {
+
+}
 
 func TestNicknameHandler(t *testing.T) {}
 
