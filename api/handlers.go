@@ -2,6 +2,7 @@ package api
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http"
 
 	"github.com/renantarouco/ics-message-server/server"
@@ -54,7 +55,8 @@ func SwitchRoomHandler(w http.ResponseWriter, r *http.Request) {
 // UsersHandler - Returns the list of all the users in the same room as the one
 // requesting
 func UsersHandler(w http.ResponseWriter, r *http.Request) {
-
+	w.WriteHeader(http.StatusOK)
+	fmt.Fprint(w, "users list")
 }
 
 // ExitHandler - Gracefully disconnects the user from the server
