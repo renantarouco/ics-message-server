@@ -6,6 +6,7 @@ import (
 	"net/http/httptest"
 	"testing"
 
+	"github.com/gorilla/websocket"
 	"github.com/renantarouco/ics-message-server/server"
 )
 
@@ -33,18 +34,13 @@ func TestAuthHandler(t *testing.T) {
 	})
 	t.Run("duplicate-nickname", func(t *testing.T) {
 		nicknameTest(t, "nick2", http.StatusCreated)
-		nicknameTest(t, "nick2", http.StatusConflict)
+		nicknameTest(t, "nick2", http.StatusForbidden)
 	})
 	t.Run("valid-token", func(t *testing.T) {
 		rr := nicknameTest(t, "nick3", http.StatusCreated)
-		var bodyMap map[string]string
-		err := json.Unmarshal(rr.Body.Bytes(), &bodyMap)
+		tokenStr, err := extractTokenStr(rr)
 		if err != nil {
 			t.Error(err)
-		}
-		tokenStr, ok := bodyMap["token"]
-		if !ok {
-			t.Error("body doesn't contain 'token' key")
 		}
 		err = IsTokenValid(tokenStr)
 		if err != nil {
@@ -54,7 +50,32 @@ func TestAuthHandler(t *testing.T) {
 }
 
 func TestWsHandler(t *testing.T) {
-	todoTest(t)
+	server := httptest.NewServer(APIRouter)
+	defer server.Close()
+	ws1, _ := connectUser(t, server, "testUser11")
+	defer ws1.Close()
+	ws2, _ := connectUser(t, server, "testUser22")
+	defer ws2.Close()
+	t.Run("can-write", func(t *testing.T) {
+		if err := ws1.WriteMessage(websocket.TextMessage, []byte("test")); err != nil {
+			t.Fatalf("could not send message over ws connection %v", err)
+		}
+	})
+	t.Run("can-receive", func(t *testing.T) {
+		for i := 0; i < 10; i++ {
+			if err := ws1.WriteMessage(websocket.TextMessage, []byte("test")); err != nil {
+				t.Error(err)
+			}
+			_, buff, err := ws2.ReadMessage()
+			if err != nil {
+				t.Error(err)
+			}
+			message := string(buff)
+			if message != "test" {
+				t.Errorf("wrong message received, wanted %s got %s", "test", message)
+			}
+		}
+	})
 }
 
 func TestNicknameHandler(t *testing.T) {
@@ -139,8 +160,14 @@ func TestSwitchRoomHandler(t *testing.T) {
 }
 
 func TestUsersHandler(t *testing.T) {
+	testServer := httptest.NewServer(APIRouter)
+	defer testServer.Close()
+	ws1, _ := connectUser(t, testServer, "testUser1")
+	defer ws1.Close()
+	ws2, tokenStr2 := connectUser(t, testServer, "testUser2")
+	defer ws2.Close()
 	req := httptest.NewRequest(http.MethodGet, "/users", nil)
-	addBearerAuthHeader(req, validToken)
+	addBearerAuthHeader(req, tokenStr2)
 	rr := httptest.NewRecorder()
 	APIRouter.ServeHTTP(rr, req)
 	testStatusCode(t, rr, http.StatusOK)
@@ -149,9 +176,16 @@ func TestUsersHandler(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
-	todoTest(t)
 }
 
 func TestExitHandler(t *testing.T) {
-	todoTest(t)
+	testServer := httptest.NewServer(APIRouter)
+	defer testServer.Close()
+	ws, tokenStr := connectUser(t, testServer, "testUser33")
+	defer ws.Close()
+	req := httptest.NewRequest(http.MethodGet, "/exit", nil)
+	addBearerAuthHeader(req, tokenStr)
+	rr := httptest.NewRecorder()
+	APIRouter.ServeHTTP(rr, req)
+	testStatusCode(t, rr, http.StatusOK)
 }

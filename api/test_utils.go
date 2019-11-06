@@ -1,6 +1,8 @@
 package api
 
 import (
+	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
 	"net/http/httptest"
@@ -8,6 +10,8 @@ import (
 	"strconv"
 	"strings"
 	"testing"
+
+	"github.com/gorilla/websocket"
 )
 
 const (
@@ -27,10 +31,10 @@ func testStatusCode(t *testing.T, rr *httptest.ResponseRecorder, expectedStatusC
 
 func addBearerAuthHeader(r *http.Request, tokenStr string) {
 	bearerToken := fmt.Sprintf("Bearer %s", "")
-	r.Header.Add("Authorization", bearerToken)
+	r.Header.Set("Authorization", bearerToken)
 }
 
-func generateBasicNamingTest(fieldName, httpMethod, route, tokenStr string) func(t *testing.T, roomName string, expectedStatusCode int) *httptest.ResponseRecorder {
+func generateBasicNamingTest(fieldName, httpMethod, route, tokenStr string) func(*testing.T, string, int) *httptest.ResponseRecorder {
 	return func(t *testing.T, name string, expectedStatusCode int) *httptest.ResponseRecorder {
 		formData := url.Values{}
 		formData.Set(fieldName, name)
@@ -48,4 +52,34 @@ func generateBasicNamingTest(fieldName, httpMethod, route, tokenStr string) func
 		testStatusCode(t, rr, expectedStatusCode)
 		return rr
 	}
+}
+
+func extractTokenStr(rr *httptest.ResponseRecorder) (string, error) {
+	var bodyMap map[string]string
+	err := json.Unmarshal(rr.Body.Bytes(), &bodyMap)
+	if err != nil {
+		return "", err
+	}
+	tokenStr, ok := bodyMap["token"]
+	if !ok {
+		return "", errors.New("body doesn't contain 'token' key")
+	}
+	return tokenStr, nil
+}
+
+func connectUser(t *testing.T, server *httptest.Server, nickname string) (*websocket.Conn, string) {
+	wsURL := "ws" + strings.TrimPrefix(server.URL, "http") + "/ws"
+	nicknameTest := generateBasicNamingTest("nickname", http.MethodPost, "/auth", "")
+	rr1 := nicknameTest(t, nickname, http.StatusCreated)
+	tokenStr, err := extractTokenStr(rr1)
+	if err != nil {
+		t.Error(err)
+	}
+	reqHeader1 := http.Header{}
+	reqHeader1.Set("Authorization", fmt.Sprintf("Bearer %s", tokenStr))
+	ws, _, err := websocket.DefaultDialer.Dial(wsURL, reqHeader1)
+	if err != nil {
+		t.Fatalf("could not open a ws connection on %s %v", wsURL, err)
+	}
+	return ws, tokenStr
 }

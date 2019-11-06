@@ -41,7 +41,7 @@ func TestValidateToken(t *testing.T) {
 		if err != nil {
 			t.Error(err)
 		}
-		req = addBearerAuthHeader(req, validToken)
+		addBearerAuthHeader(req, validToken)
 		rr := httptest.NewRecorder()
 		APIRouter.ServeHTTP(rr, req)
 		if status := rr.Code; status != http.StatusUnauthorized {
@@ -53,7 +53,7 @@ func TestValidateToken(t *testing.T) {
 		if err != nil {
 			t.Error(err)
 		}
-		req = addBearerAuthHeader(req, validToken)
+		addBearerAuthHeader(req, validToken)
 		rr := httptest.NewRecorder()
 		APIRouter.ServeHTTP(rr, req)
 		if status := rr.Code; status != http.StatusOK {
@@ -65,7 +65,7 @@ func TestValidateToken(t *testing.T) {
 		if err != nil {
 			t.Error(err)
 		}
-		req = addBearerAuthHeader(req, invalidToken)
+		addBearerAuthHeader(req, invalidToken)
 		rr := httptest.NewRecorder()
 		APIRouter.ServeHTTP(rr, req)
 		if status := rr.Code; status != http.StatusUnauthorized {
