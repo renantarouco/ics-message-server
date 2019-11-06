@@ -20,7 +20,7 @@ var Routes []Route = []Route{
 	{"/ws", WsHandler, "ws", http.MethodGet},
 	{"/nickname", NicknameHandler, "nickname", http.MethodPut},
 	{"/rooms", CreateRoomHandler, "create-room", http.MethodPost},
-	{"/rooms", CreateRoomHandler, "switch-room", http.MethodPut},
+	{"/rooms", SwitchRoomHandler, "switch-room", http.MethodPut},
 	{"/users", UsersHandler, "users", http.MethodGet},
 	{"/exit", ExitHandler, "exit", http.MethodGet},
 }

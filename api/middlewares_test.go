@@ -1,7 +1,6 @@
 package api
 
 import (
-	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
@@ -42,8 +41,7 @@ func TestValidateToken(t *testing.T) {
 		if err != nil {
 			t.Error(err)
 		}
-		bearerToken := fmt.Sprintf("Bearer %s", "")
-		req.Header.Add("Authorization", bearerToken)
+		req = addBearerAuthHeader(req, validToken)
 		rr := httptest.NewRecorder()
 		APIRouter.ServeHTTP(rr, req)
 		if status := rr.Code; status != http.StatusUnauthorized {
@@ -55,9 +53,7 @@ func TestValidateToken(t *testing.T) {
 		if err != nil {
 			t.Error(err)
 		}
-		validToken := "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpYXQiOjE1NzI3ODY0MDAsImlzcyI6Im5pY2szIiwic3ViIjoidW5hbWVkIn0.yJ-vyVz_5uJW4xyxNyA4TI00K98GfE4EkgYxBi8-w3c"
-		bearerToken := fmt.Sprintf("Bearer %s", validToken)
-		req.Header.Add("Authorization", bearerToken)
+		req = addBearerAuthHeader(req, validToken)
 		rr := httptest.NewRecorder()
 		APIRouter.ServeHTTP(rr, req)
 		if status := rr.Code; status != http.StatusOK {
@@ -69,9 +65,7 @@ func TestValidateToken(t *testing.T) {
 		if err != nil {
 			t.Error(err)
 		}
-		invalidToken := "eyJhbGcikpXVCJ9.eyJpYXQiOjE1NzI3ODY0MDAsImlzcyI6Im5pY2szIiwic3ViIjoidW5hbWVkIn0.yJ-vyVz_5uJW4xyxNyA4TI00K98GfE4EkgYxBi8-w3c"
-		bearerToken := fmt.Sprintf("Bearer %s", invalidToken)
-		req.Header.Add("Authorization", bearerToken)
+		req = addBearerAuthHeader(req, invalidToken)
 		rr := httptest.NewRecorder()
 		APIRouter.ServeHTTP(rr, req)
 		if status := rr.Code; status != http.StatusUnauthorized {
