@@ -15,7 +15,7 @@ import (
 )
 
 const (
-	validToken   = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpYXQiOjE1NzI3ODY0MDAsImlzcyI6Im5pY2szIiwic3ViIjoidW5hbWVkIn0.yJ-vyVz_5uJW4xyxNyA4TI00K98GfE4EkgYxBi8-w3c"
+	validToken   = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE2NDA5MDg4MDAsImlhdCI6MTU3MzEzMTE2NSwiaXNzIjoibmljazMiLCJzdWIiOiJ1bmFtZWQifQ.pN9vpFTeWbygia1l_7UK7HSSAPZrlRcZ-iGVymyGc5U"
 	invalidToken = "eyJhbGcikpXVCJ9.eyJpYXQiOjE1NzI3ODY0MDAsImlzcyI6Im5pY2szIiwic3ViIjoidW5hbWVkIn0.yJ-vyVz_5uJW4xyxNyA4TI00K98GfE4EkgYxBi8-w3c"
 )
 

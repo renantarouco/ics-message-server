@@ -59,6 +59,9 @@ func TestValidateToken(t *testing.T) {
 		if status := rr.Code; status != http.StatusOK {
 			t.Errorf("wrong code, wanted %v got %v", http.StatusOK, status)
 		}
+		if tokenStr := req.Context().Value("tokenStr"); tokenStr == nil {
+			t.Errorf("context doesn't contain tokenStr")
+		}
 	})
 	t.Run("invalid-token", func(t *testing.T) {
 		req, err := http.NewRequest(http.MethodGet, "/users", nil)

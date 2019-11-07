@@ -4,3 +4,10 @@ package server
 type User struct {
 	Nickname string
 }
+
+// NewUser - Returns a new user instance
+func NewUser(nickname string) *User {
+	return &User{
+		Nickname: nickname,
+	}
+}

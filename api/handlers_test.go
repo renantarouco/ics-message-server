@@ -2,6 +2,7 @@ package api
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -39,6 +40,7 @@ func TestAuthHandler(t *testing.T) {
 	t.Run("valid-token", func(t *testing.T) {
 		rr := nicknameTest(t, "nick3", http.StatusCreated)
 		tokenStr, err := extractTokenStr(rr)
+		fmt.Printf("valid<%s>", tokenStr)
 		if err != nil {
 			t.Error(err)
 		}

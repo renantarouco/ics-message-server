@@ -5,10 +5,14 @@ import (
 	"fmt"
 	"net/http"
 
+	"github.com/gorilla/websocket"
 	"github.com/renantarouco/ics-message-server/server"
 )
 
 var s = server.NewMessageServer()
+var upgrader = &websocket.Upgrader{
+	CheckOrigin: func(r *http.Request) bool { return true },
+}
 
 // AuthHandler - The authentication handler. Receives via POST an URL encoded
 // nickname field and returns a JSON object with a token for future requests
@@ -34,7 +38,22 @@ func AuthHandler(w http.ResponseWriter, r *http.Request) {
 // WsHandler - The endpoint to connect via Websockets and start sending and
 // receiving messages
 func WsHandler(w http.ResponseWriter, r *http.Request) {
-
+	tokenStr, ok := r.Context().Value("tokenStr").(string)
+	if !ok {
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+	conn, err := upgrader.Upgrade(w, r, nil)
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+	err = s.ConnectUser(tokenStr, conn)
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+	w.WriteHeader(http.StatusOK)
 }
 
 // NicknameHandler - Handles the attempt to chang the nickname
