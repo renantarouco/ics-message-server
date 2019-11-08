@@ -13,7 +13,7 @@ type MessageServer struct {
 	Users              map[string]bool
 	Rooms              map[string]*Room
 	AuthenticatedUsers map[string]*User
-	ConnectedUsers     map[string]*User
+	ConnectedClients   map[string]*Client
 }
 
 // NewMessageServer - Returns a fresh instance of a MessageServer
@@ -25,7 +25,7 @@ func NewMessageServer() *MessageServer {
 			"global": NewRoom(),
 		},
 		AuthenticatedUsers: map[string]*User{},
-		ConnectedUsers:     map[string]*User{},
+		ConnectedClients:   map[string]*Client{},
 	}
 }
 
@@ -48,9 +48,10 @@ func (s *MessageServer) AuthenticateUser(nickname string) (string, error) {
 
 // ConnectUser - Effectively connects a user to receive/send messages
 func (s *MessageServer) ConnectUser(tokenStr string, conn *websocket.Conn) error {
-	_, ok := s.AuthenticatedUsers[tokenStr]
+	user, ok := s.AuthenticatedUsers[tokenStr]
 	if !ok {
 		return errors.New("user not authenticated")
 	}
+	s.ConnectedClients[tokenStr] = NewClient(conn, user)
 	return nil
 }
