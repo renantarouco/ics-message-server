@@ -1,4 +1,4 @@
-package api
+package http
 
 import (
 	"net/http"
@@ -20,7 +20,7 @@ func TestValidateToken(t *testing.T) {
 		req.Header.Add("Content-Type", "application/x-www-form-urlencoded")
 		req.Header.Add("Content-Length", strconv.Itoa(len(formData.Encode())))
 		rr := httptest.NewRecorder()
-		APIRouter.ServeHTTP(rr, req)
+		Router.ServeHTTP(rr, req)
 		if status := rr.Code; status != http.StatusCreated {
 			t.Errorf("wrong code, wanted %v got %v", http.StatusCreated, status)
 		}
@@ -31,7 +31,7 @@ func TestValidateToken(t *testing.T) {
 			t.Error(err)
 		}
 		rr := httptest.NewRecorder()
-		APIRouter.ServeHTTP(rr, req)
+		Router.ServeHTTP(rr, req)
 		if status := rr.Code; status != http.StatusUnauthorized {
 			t.Errorf("wrong code, wanted %v got %v", http.StatusUnauthorized, status)
 		}
@@ -43,7 +43,7 @@ func TestValidateToken(t *testing.T) {
 		}
 		addBearerAuthHeader(req, validToken)
 		rr := httptest.NewRecorder()
-		APIRouter.ServeHTTP(rr, req)
+		Router.ServeHTTP(rr, req)
 		if status := rr.Code; status != http.StatusUnauthorized {
 			t.Errorf("wrong code, wanted %v got %v", http.StatusUnauthorized, status)
 		}
@@ -55,7 +55,7 @@ func TestValidateToken(t *testing.T) {
 		}
 		addBearerAuthHeader(req, validToken)
 		rr := httptest.NewRecorder()
-		APIRouter.ServeHTTP(rr, req)
+		Router.ServeHTTP(rr, req)
 		if status := rr.Code; status != http.StatusOK {
 			t.Errorf("wrong code, wanted %v got %v", http.StatusOK, status)
 		}
@@ -70,7 +70,7 @@ func TestValidateToken(t *testing.T) {
 		}
 		addBearerAuthHeader(req, invalidToken)
 		rr := httptest.NewRecorder()
-		APIRouter.ServeHTTP(rr, req)
+		Router.ServeHTTP(rr, req)
 		if status := rr.Code; status != http.StatusUnauthorized {
 			t.Errorf("wrong code, wanted %v got %v", http.StatusUnauthorized, status)
 		}

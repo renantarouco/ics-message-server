@@ -1,4 +1,4 @@
-package api
+package http
 
 import (
 	"encoding/json"
@@ -48,7 +48,7 @@ func generateBasicNamingTest(fieldName, httpMethod, route, tokenStr string) func
 			addBearerAuthHeader(req, tokenStr)
 		}
 		rr := httptest.NewRecorder()
-		APIRouter.ServeHTTP(rr, req)
+		Router.ServeHTTP(rr, req)
 		testStatusCode(t, rr, expectedStatusCode)
 		return rr
 	}

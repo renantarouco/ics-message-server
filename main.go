@@ -1,7 +1,17 @@
 package main
 
-import "fmt"
+import (
+	"log"
+	"os"
+)
 
 func main() {
-	fmt.Println("running server...")
+	if err := Init(); err != nil {
+		log.Println(err.Error())
+		os.Exit(1)
+	}
+	if err := Run(); err != nil {
+		log.Println(err.Error())
+		os.Exit(1)
+	}
 }

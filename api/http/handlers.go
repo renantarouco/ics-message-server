@@ -1,4 +1,4 @@
-package api
+package http
 
 import (
 	"encoding/json"
@@ -9,9 +9,14 @@ import (
 	"github.com/renantarouco/ics-message-server/server"
 )
 
-var s = server.NewMessageServer()
+var s *server.MessageServer
 var upgrader = &websocket.Upgrader{
 	CheckOrigin: func(r *http.Request) bool { return true },
+}
+
+// RegisterServer - Register the server responding to API calls
+func RegisterServer(newServer *server.MessageServer) {
+	s = newServer
 }
 
 // AuthHandler - The authentication handler. Receives via POST an URL encoded

@@ -1,4 +1,4 @@
-package api
+package http
 
 import (
 	"encoding/json"
@@ -20,7 +20,7 @@ func TestAuthHandler(t *testing.T) {
 			t.Error(err)
 		}
 		rr := httptest.NewRecorder()
-		APIRouter.ServeHTTP(rr, req)
+		Router.ServeHTTP(rr, req)
 		testStatusCode(t, rr, http.StatusBadRequest)
 	})
 	nicknameTest := generateBasicNamingTest("nickname", http.MethodPost, "/auth", "")
@@ -52,7 +52,7 @@ func TestAuthHandler(t *testing.T) {
 }
 
 func TestWsHandler(t *testing.T) {
-	server := httptest.NewServer(APIRouter)
+	server := httptest.NewServer(Router)
 	defer server.Close()
 	ws1, _ := connectUser(t, server, "testUser11")
 	defer ws1.Close()
@@ -88,7 +88,7 @@ func TestNicknameHandler(t *testing.T) {
 		}
 		addBearerAuthHeader(req, validToken)
 		rr := httptest.NewRecorder()
-		APIRouter.ServeHTTP(rr, req)
+		Router.ServeHTTP(rr, req)
 		testStatusCode(t, rr, http.StatusBadRequest)
 	})
 	nicknameTest := generateBasicNamingTest("nickname", http.MethodPut, "/nickname", validToken)
@@ -115,7 +115,7 @@ func TestCreateRoomHandler(t *testing.T) {
 		}
 		addBearerAuthHeader(req, validToken)
 		rr := httptest.NewRecorder()
-		APIRouter.ServeHTTP(rr, req)
+		Router.ServeHTTP(rr, req)
 		testStatusCode(t, rr, http.StatusBadRequest)
 	})
 	roomNameTest := generateBasicNamingTest("room", http.MethodPost, "/rooms", validToken)
@@ -142,7 +142,7 @@ func TestSwitchRoomHandler(t *testing.T) {
 		}
 		addBearerAuthHeader(req, validToken)
 		rr := httptest.NewRecorder()
-		APIRouter.ServeHTTP(rr, req)
+		Router.ServeHTTP(rr, req)
 		testStatusCode(t, rr, http.StatusBadRequest)
 	})
 	roomNameTest := generateBasicNamingTest("room", http.MethodPut, "/rooms", validToken)
@@ -162,7 +162,7 @@ func TestSwitchRoomHandler(t *testing.T) {
 }
 
 func TestUsersHandler(t *testing.T) {
-	testServer := httptest.NewServer(APIRouter)
+	testServer := httptest.NewServer(Router)
 	defer testServer.Close()
 	ws1, _ := connectUser(t, testServer, "testUser1")
 	defer ws1.Close()
@@ -171,7 +171,7 @@ func TestUsersHandler(t *testing.T) {
 	req := httptest.NewRequest(http.MethodGet, "/users", nil)
 	addBearerAuthHeader(req, tokenStr2)
 	rr := httptest.NewRecorder()
-	APIRouter.ServeHTTP(rr, req)
+	Router.ServeHTTP(rr, req)
 	testStatusCode(t, rr, http.StatusOK)
 	var usersList []server.User
 	err := json.Unmarshal(rr.Body.Bytes(), &usersList)
@@ -181,13 +181,13 @@ func TestUsersHandler(t *testing.T) {
 }
 
 func TestExitHandler(t *testing.T) {
-	testServer := httptest.NewServer(APIRouter)
+	testServer := httptest.NewServer(Router)
 	defer testServer.Close()
 	ws, tokenStr := connectUser(t, testServer, "testUser33")
 	defer ws.Close()
 	req := httptest.NewRequest(http.MethodGet, "/exit", nil)
 	addBearerAuthHeader(req, tokenStr)
 	rr := httptest.NewRecorder()
-	APIRouter.ServeHTTP(rr, req)
+	Router.ServeHTTP(rr, req)
 	testStatusCode(t, rr, http.StatusOK)
 }

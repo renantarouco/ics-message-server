@@ -1,4 +1,4 @@
-package api
+package http
 
 import (
 	"net/http"
@@ -26,13 +26,13 @@ var Routes []Route = []Route{
 }
 
 // APIRouter - The router instance serving the whole application for HTTP Requests
-var APIRouter = mux.NewRouter()
+var Router = mux.NewRouter()
 
 func init() {
 	for _, route := range Routes {
-		APIRouter.HandleFunc(route.Path, route.Handler).
+		Router.HandleFunc(route.Path, route.Handler).
 			Name(route.Name).
 			Methods(route.Method)
 	}
-	APIRouter.Use(ValidateTokenMiddleware)
+	Router.Use(ValidateTokenMiddleware)
 }

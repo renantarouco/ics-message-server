@@ -55,3 +55,11 @@ func (s *MessageServer) ConnectUser(tokenStr string, conn *websocket.Conn) error
 	s.ConnectedClients[tokenStr] = NewClient(conn, user)
 	return nil
 }
+
+// Run - MessageServer's main routine
+func (s *MessageServer) Run() error {
+	for _, room := range s.Rooms {
+		go room.Run()
+	}
+	return nil
+}
