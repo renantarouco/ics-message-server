@@ -30,20 +30,16 @@ func NewMessageServer() *MessageServer {
 }
 
 // AuthenticateUser - Authenticates an incoming user to the server
-func (s *MessageServer) AuthenticateUser(nickname string) (string, error) {
+func (s *MessageServer) AuthenticateUser(nickname, tokenStr string) error {
 	if _, ok := s.Users[nickname]; ok {
-		return "", fmt.Errorf("%s already in use", nickname)
+		return fmt.Errorf("%s already in use", nickname)
 	}
 	if err := ValidateNickname(nickname); err != nil {
-		return "", err
-	}
-	tokenStr, err := NewTokenString(s.ID, nickname)
-	if err != nil {
-		return "", err
+		return err
 	}
 	s.Users[nickname] = true
 	s.AuthenticatedUsers[tokenStr] = NewUser(nickname)
-	return tokenStr, nil
+	return nil
 }
 
 // ConnectUser - Effectively connects a user to receive/send messages
@@ -52,7 +48,10 @@ func (s *MessageServer) ConnectUser(tokenStr string, conn *websocket.Conn) error
 	if !ok {
 		return errors.New("user not authenticated")
 	}
-	s.ConnectedClients[tokenStr] = NewClient(conn, user)
+	globalRoom := s.Rooms["global"]
+	client := NewClient(conn, user, globalRoom)
+	s.ConnectedClients[tokenStr] = client
+	globalRoom.RegisterChan <- client
 	return nil
 }
 

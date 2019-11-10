@@ -22,7 +22,7 @@ var expectedRoutes = map[string][]string{
 
 func TestAllExpectedRoutesImplemented(t *testing.T) {
 	implementedRoutes := map[string]int{}
-	APIRouter.Walk(func(route *mux.Route, router *mux.Router, acestors []*mux.Route) error {
+	Router.Walk(func(route *mux.Route, router *mux.Router, acestors []*mux.Route) error {
 		implementedRoutes[route.GetName()]++
 		return nil
 	})
@@ -46,7 +46,7 @@ func TestAllExpectedRoutesImplemented(t *testing.T) {
 }
 
 func TestRoutesAllowedMethods(t *testing.T) {
-	err := APIRouter.Walk(func(route *mux.Route, router *mux.Router, acestors []*mux.Route) error {
+	err := Router.Walk(func(route *mux.Route, router *mux.Router, acestors []*mux.Route) error {
 		routeMethods, err := route.GetMethods()
 		if err != nil {
 			return err

@@ -27,13 +27,18 @@ func AuthHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	nickname := r.PostFormValue("nickname")
-	token, err := s.AuthenticateUser(nickname)
+	tokenStr, err := NewTokenString(s.ID, r.RemoteAddr)
+	if err != nil {
+		w.WriteHeader(http.StatusForbidden)
+		return
+	}
+	err = s.AuthenticateUser(nickname, tokenStr)
 	if err != nil {
 		w.WriteHeader(http.StatusForbidden)
 		return
 	}
 	responseToken := map[string]interface{}{
-		"token": token,
+		"token": tokenStr,
 	}
 	w.WriteHeader(http.StatusCreated)
 	w.Header().Set("Content-Type", "application/json")
@@ -63,27 +68,31 @@ func WsHandler(w http.ResponseWriter, r *http.Request) {
 
 // NicknameHandler - Handles the attempt to chang the nickname
 func NicknameHandler(w http.ResponseWriter, r *http.Request) {
-
+	w.WriteHeader(http.StatusOK)
+	fmt.Fprint(w, "NicknameHandler")
 }
 
 // CreateRoomHandler - The endpoint to create a new room when POST is sent
 func CreateRoomHandler(w http.ResponseWriter, r *http.Request) {
-
+	w.WriteHeader(http.StatusOK)
+	fmt.Fprint(w, "CreateRoomHandler")
 }
 
 // SwitchRoomHandler - The endpoint to switch user's room when PUT is sent
 func SwitchRoomHandler(w http.ResponseWriter, r *http.Request) {
-
+	w.WriteHeader(http.StatusOK)
+	fmt.Fprint(w, "SwitchRoomHandler")
 }
 
 // UsersHandler - Returns the list of all the users in the same room as the one
 // requesting
 func UsersHandler(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
-	fmt.Fprint(w, "users list")
+	fmt.Fprint(w, "UsersHandler")
 }
 
 // ExitHandler - Gracefully disconnects the user from the server
 func ExitHandler(w http.ResponseWriter, r *http.Request) {
-
+	w.WriteHeader(http.StatusOK)
+	fmt.Fprint(w, "ExitHandler")
 }

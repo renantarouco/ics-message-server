@@ -11,8 +11,6 @@ import (
 	"github.com/renantarouco/ics-message-server/server"
 )
 
-var jwtKey = []byte("secret_key")
-
 func TestAuthHandler(t *testing.T) {
 	t.Run("no-nickname", func(t *testing.T) {
 		req, err := http.NewRequest(http.MethodPost, "/auth", nil)

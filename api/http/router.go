@@ -25,7 +25,7 @@ var Routes []Route = []Route{
 	{"/exit", ExitHandler, "exit", http.MethodGet},
 }
 
-// APIRouter - The router instance serving the whole application for HTTP Requests
+// Router - The router instance serving the whole application for HTTP Requests
 var Router = mux.NewRouter()
 
 func init() {

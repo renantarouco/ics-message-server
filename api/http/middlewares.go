@@ -2,7 +2,6 @@ package http
 
 import (
 	"context"
-	"fmt"
 	"net/http"
 	"strings"
 )
@@ -22,7 +21,6 @@ func ValidateTokenMiddleware(next http.Handler) http.Handler {
 		authHeader := r.Header.Get("Authorization")
 		tokenStr := strings.TrimPrefix(authHeader, "Bearer")
 		tokenStr = strings.TrimLeft(tokenStr, " ")
-		fmt.Printf("<%s>", tokenStr)
 		err := IsTokenValid(tokenStr)
 		if err != nil {
 			w.WriteHeader(http.StatusUnauthorized)
