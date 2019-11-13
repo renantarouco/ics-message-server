@@ -52,6 +52,7 @@ func (s *MessageServer) ConnectUser(tokenStr string, conn *websocket.Conn) error
 	client := NewClient(conn, user, globalRoom)
 	s.ConnectedClients[tokenStr] = client
 	globalRoom.RegisterChan <- client
+	client.Run()
 	return nil
 }
 

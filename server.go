@@ -27,6 +27,7 @@ func Run() error {
 		}
 	}()
 	// TODO: Run gRPC API
+	// Running server routine
 	go func() {
 		if err := s.Run(); err != nil {
 			errorChan <- err

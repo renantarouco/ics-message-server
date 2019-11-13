@@ -1,6 +1,7 @@
 package server
 
 import (
+	"encoding/json"
 	"log"
 
 	"github.com/gorilla/websocket"
@@ -36,10 +37,11 @@ func (c *Client) ReceiveRoutine() {
 	for {
 		select {
 		case room, ok := <-c.RoomChan:
-			if ok {
-				c.Room.UnregisterChan <- c
-				c.Room = room
+			if !ok {
+				return
 			}
+			c.Room.UnregisterChan <- c
+			c.Room = room
 		default:
 			msgType, messageData, err := c.Conn.ReadMessage()
 			if err != nil {
@@ -51,6 +53,7 @@ func (c *Client) ReceiveRoutine() {
 					log.Println("ClientDisconnected")
 				}
 				c.Room.UnregisterChan <- c
+				c.Stop()
 				return
 			}
 			switch msgType {
@@ -65,4 +68,32 @@ func (c *Client) ReceiveRoutine() {
 			}
 		}
 	}
+}
+
+// SendRoutine - Routine responsible to send messages to the connected client
+func (c *Client) SendRoutine() {
+	for {
+		message, ok := <-c.SendChan
+		if !ok {
+			return
+		}
+		encodedMessage, err := json.Marshal(message)
+		if err != nil {
+			log.Printf("error decoding message from %s to %s", message.From, c.Nickname())
+		}
+		c.Conn.WriteMessage(websocket.TextMessage, encodedMessage)
+	}
+}
+
+// Run - Client's main routine
+func (c *Client) Run() error {
+	go c.SendRoutine()
+	c.ReceiveRoutine()
+	return nil
+}
+
+// Stop - Gracefully stops client routines closing all of its channels
+func (c *Client) Stop() {
+	close(c.SendChan)
+	close(c.RoomChan)
 }

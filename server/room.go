@@ -23,7 +23,7 @@ func NewRoom() *Room {
 // Run - Room's main thread, reads on three main channels
 // RegisterChan: Incomming clients to join room
 // UnregisterChan: Clients leaving the room
-//
+// BroadcastChan: Messages to be broadcasted
 func (r *Room) Run() {
 	for {
 		select {
