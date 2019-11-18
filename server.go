@@ -8,11 +8,11 @@ import (
 	"github.com/renantarouco/ics-message-server/server"
 )
 
-var s = server.NewMessageServer()
+var s *server.MessageServer
 
 // Init - Initialize the singleton message server
 func Init() error {
-	// s.FetchNameServer(ip, port)
+	s = server.NewMessageServer()
 	api.RegisterServer(s)
 	return nil
 }

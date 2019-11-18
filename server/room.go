@@ -8,6 +8,7 @@ type Room struct {
 	UnregisterChan chan *Client
 	BroadcastChan  chan Message
 	Clients        map[*Client]bool
+	Overlay        *Overlay
 }
 
 // NewRoom - Instantiates a new room
@@ -17,6 +18,7 @@ func NewRoom() *Room {
 		UnregisterChan: make(chan *Client, 32),
 		BroadcastChan:  make(chan Message, 128),
 		Clients:        map[*Client]bool{},
+		Overlay:        NewOverlay(),
 	}
 }
 
@@ -42,10 +44,15 @@ func (r *Room) Run() {
 			}
 		case message, ok := <-r.BroadcastChan:
 			if ok {
-				for client := range r.Clients {
-					client.SendChan <- message
-				}
+				go r.BroadcastClients(message)
+				r.Overlay.BroadcastMessage(message)
 			}
 		}
+	}
+}
+
+func (r *Room) BroadcastClients(message Message) {
+	for client := range r.Clients {
+		client.SendChan <- message
 	}
 }
