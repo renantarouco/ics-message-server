@@ -1,4 +1,4 @@
-package http
+package main
 
 import (
 	"errors"
@@ -11,6 +11,22 @@ import (
 )
 
 var jwtKey = []byte("secret_key")
+
+// EnableCORS - Necessary headers to allow CORS
+func EnableCORS(router *mux.Router) http.Handler {
+	methodsOk := handlers.AllowedMethods([]string{"GET", "HEAD", "POST", "PUT", "OPTIONS"})
+	originsOk := handlers.AllowedOrigins([]string{"*"})
+	headersOk := handlers.AllowedHeaders([]string{
+		"X-Requested-With",
+		"Content-Type",
+		"Accept",
+		"Content-Length",
+		"Accept-Encoding",
+		"X-CSRF-Token",
+		"Authorization",
+	})
+	return handlers.CORS(headersOk, originsOk, methodsOk)(router)
+}
 
 // NewTokenString - Creates a new JWT token for a client
 func NewTokenString(subject, issuer string) (string, error) {
@@ -39,20 +55,4 @@ func IsTokenValid(tokenStr string) error {
 		return errors.New("invalid token")
 	}
 	return nil
-}
-
-// EnableCORS - Necessary headers to allow CORS
-func EnableCORS(router *mux.Router) http.Handler {
-	methodsOk := handlers.AllowedMethods([]string{"GET", "HEAD", "POST", "PUT", "OPTIONS"})
-	originsOk := handlers.AllowedOrigins([]string{"*"})
-	headersOk := handlers.AllowedHeaders([]string{
-		"X-Requested-With",
-		"Content-Type",
-		"Accept",
-		"Content-Length",
-		"Accept-Encoding",
-		"X-CSRF-Token",
-		"Authorization",
-	})
-	return handlers.CORS(headersOk, originsOk, methodsOk)(router)
 }

@@ -1,24 +1,31 @@
 package server
 
-import "fmt"
+import (
+	"fmt"
+	"sync"
+
+	log "github.com/sirupsen/logrus"
+)
 
 // Room - Room representation and threads holder
 type Room struct {
+	Name           string
 	RegisterChan   chan *Client
 	UnregisterChan chan *Client
 	BroadcastChan  chan Message
 	Clients        map[*Client]bool
-	Overlay        *Overlay
+	Lock           sync.Mutex
 }
 
 // NewRoom - Instantiates a new room
-func NewRoom() *Room {
+func NewRoom(name string) *Room {
 	return &Room{
+		Name:           name,
 		RegisterChan:   make(chan *Client, 32),
 		UnregisterChan: make(chan *Client, 32),
 		BroadcastChan:  make(chan Message, 128),
 		Clients:        map[*Client]bool{},
-		Overlay:        NewOverlay(),
+		Lock:           sync.Mutex{},
 	}
 }
 
@@ -27,32 +34,50 @@ func NewRoom() *Room {
 // UnregisterChan: Clients leaving the room
 // BroadcastChan: Messages to be broadcasted
 func (r *Room) Run() {
-	for {
-		select {
-		case client, ok := <-r.RegisterChan:
-			if ok {
-				r.Clients[client] = true
-				message := Message{
-					"system",
-					fmt.Sprintf("%s joined", client.Nickname()),
-				}
-				r.BroadcastChan <- message
+	wg := sync.WaitGroup{}
+	wg.Add(3)
+	go func() {
+		defer wg.Done()
+		for client := range r.RegisterChan {
+			r.Lock.Lock()
+			r.Clients[client] = true
+			r.Lock.Unlock()
+			message := Message{
+				"system",
+				fmt.Sprintf("%s joined", client.Nickname()),
 			}
-		case client, ok := <-r.UnregisterChan:
-			if ok {
-				delete(r.Clients, client)
-			}
-		case message, ok := <-r.BroadcastChan:
-			if ok {
-				go r.BroadcastClients(message)
-				r.Overlay.BroadcastMessage(message)
-			}
+			log.Debugf("%s user connected to %s room", client.Nickname(), r.Name)
+			go r.Broadcast(message)
 		}
-	}
+	}()
+	go func() {
+		defer wg.Done()
+		for client := range r.UnregisterChan {
+			r.Lock.Lock()
+			delete(r.Clients, client)
+			log.Debugf("%s user left %s room", client.Nickname(), r.Name)
+			if len(r.Clients) == 0 {
+				r.Close()
+				log.Infof("%s room closed because is empty", r.Name)
+			}
+			r.Lock.Unlock()
+		}
+	}()
+	wg.Wait()
 }
 
-func (r *Room) BroadcastClients(message Message) {
+// Broadcast - Sends a message to all connected clients.
+func (r *Room) Broadcast(message Message) {
+	r.Lock.Lock()
+	defer r.Lock.Unlock()
 	for client := range r.Clients {
 		client.SendChan <- message
 	}
+}
+
+// Close - Closes the room's channels so the thread is stopped too
+func (r *Room) Close() {
+	close(r.RegisterChan)
+	close(r.UnregisterChan)
+	close(r.BroadcastChan)
 }

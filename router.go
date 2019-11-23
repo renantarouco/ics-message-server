@@ -1,4 +1,4 @@
-package http
+package main
 
 import (
 	"net/http"
@@ -18,11 +18,6 @@ type Route struct {
 var Routes []Route = []Route{
 	{"/auth", AuthHandler, "auth", http.MethodPost},
 	{"/ws", WsHandler, "ws", http.MethodGet},
-	{"/nickname", NicknameHandler, "nickname", http.MethodPut},
-	{"/rooms", CreateRoomHandler, "create-room", http.MethodPost},
-	{"/rooms", SwitchRoomHandler, "switch-room", http.MethodPut},
-	{"/users", UsersHandler, "users", http.MethodGet},
-	{"/exit", ExitHandler, "exit", http.MethodGet},
 }
 
 // Router - The router instance serving the whole application for HTTP Requests

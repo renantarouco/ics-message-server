@@ -2,9 +2,9 @@ package server
 
 import (
 	"encoding/json"
-	"log"
 
 	"github.com/gorilla/websocket"
+	log "github.com/sirupsen/logrus"
 )
 
 // Client - struct holding messageclient info and threads
@@ -32,40 +32,45 @@ func (c *Client) Nickname() string {
 	return c.UserInfo.Nickname
 }
 
+// TokenStr - Returns the user's token string
+func (c *Client) TokenStr() string {
+	return c.UserInfo.TokenStr
+}
+
 // ReceiveRoutine - Routine for receive messages from a client
 func (c *Client) ReceiveRoutine() {
 	for {
-		select {
-		case room, ok := <-c.RoomChan:
-			if !ok {
-				return
+		msgType, messageData, err := c.Conn.ReadMessage()
+		if err != nil {
+			switch {
+			case websocket.IsCloseError(err, websocket.CloseAbnormalClosure):
+				log.Debugf("%s user had abnormal closure", c.Nickname())
+			case websocket.IsCloseError(err, websocket.CloseNormalClosure, websocket.CloseGoingAway):
+				log.Debugf("%s user had client disconnected", c.Nickname())
 			}
-			c.Room.UnregisterChan <- c
-			c.Room = room
-		default:
-			msgType, messageData, err := c.Conn.ReadMessage()
+			ExecuteCommand(c, Command{CommandExit, nil})
+			return
+		}
+		switch msgType {
+		case websocket.TextMessage:
+			var command Command
+			err := json.Unmarshal(messageData, &command)
 			if err != nil {
-				log.Println("ReadMessage: ", err)
-				switch {
-				case websocket.IsCloseError(err, websocket.CloseAbnormalClosure):
-					log.Println("AbnormalClosure")
-				case websocket.IsCloseError(err, websocket.CloseNormalClosure, websocket.CloseGoingAway):
-					log.Println("ClientDisconnected")
-				}
-				c.Room.UnregisterChan <- c
-				c.Stop()
-				return
+				message := Message{"system", "error parsing your message"}
+				c.SendChan <- message
+				continue
 			}
-			switch msgType {
-			case websocket.TextMessage:
-				c.Room.BroadcastChan <- Message{c.Nickname(), string(messageData)}
-			case websocket.BinaryMessage:
-				log.Println("BinaryMessage")
-			case websocket.PingMessage:
-				log.Println("PingMessage")
-			case websocket.PongMessage:
-				log.Println("PongMessage")
+			if err := ExecuteCommand(c, command); err != nil {
+				message := Message{"system", err.Error()}
+				c.SendChan <- message
 			}
+		case websocket.BinaryMessage:
+			log.Debugf("attempted binary message")
+		case websocket.PingMessage:
+			log.Debugf("attempted ping message")
+			c.Conn.WriteMessage(websocket.PongMessage, []byte{})
+		case websocket.PongMessage:
+			log.Debugf("attempted pong message")
 		}
 	}
 }

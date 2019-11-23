@@ -1,9 +1,11 @@
-package http
+package main
 
 import (
 	"context"
 	"net/http"
 	"strings"
+
+	log "github.com/sirupsen/logrus"
 )
 
 // ValidateTokenMiddleware - Checks validity and extracts a token in the
@@ -21,8 +23,10 @@ func ValidateTokenMiddleware(next http.Handler) http.Handler {
 		authHeader := r.Header.Get("Authorization")
 		tokenStr := strings.TrimPrefix(authHeader, "Bearer")
 		tokenStr = strings.TrimLeft(tokenStr, " ")
+		log.Debugf("token<%s>", tokenStr)
 		err := IsTokenValid(tokenStr)
 		if err != nil {
+			log.Error(err.Error())
 			w.WriteHeader(http.StatusUnauthorized)
 			return
 		}

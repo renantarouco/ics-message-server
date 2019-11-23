@@ -1,42 +1,40 @@
-package http
+package main
 
 import (
 	"encoding/json"
-	"fmt"
 	"net/http"
 
 	"github.com/gorilla/websocket"
 	"github.com/renantarouco/ics-message-server/server"
+	log "github.com/sirupsen/logrus"
 )
 
-var s *server.MessageServer
 var upgrader = &websocket.Upgrader{
 	CheckOrigin: func(r *http.Request) bool { return true },
-}
-
-// RegisterServer - Register the server responding to API calls
-func RegisterServer(newServer *server.MessageServer) {
-	s = newServer
 }
 
 // AuthHandler - The authentication handler. Receives via POST an URL encoded
 // nickname field and returns a JSON object with a token for future requests
 func AuthHandler(w http.ResponseWriter, r *http.Request) {
 	if err := r.ParseForm(); err != nil {
+		log.Error(err.Error())
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
 	nickname := r.PostFormValue("nickname")
-	tokenStr, err := NewTokenString(s.ID, r.RemoteAddr)
+	tokenStr, err := NewTokenString(server.ID(), r.RemoteAddr)
 	if err != nil {
+		log.Error(err.Error())
 		w.WriteHeader(http.StatusForbidden)
 		return
 	}
-	err = s.AuthenticateUser(nickname, tokenStr)
+	err = server.AuthenticateUser(nickname, tokenStr)
 	if err != nil {
+		log.Error(err.Error())
 		w.WriteHeader(http.StatusForbidden)
 		return
 	}
+	log.Infof("%s user authenticated", nickname)
 	responseToken := map[string]interface{}{
 		"token": tokenStr,
 	}
@@ -50,49 +48,20 @@ func AuthHandler(w http.ResponseWriter, r *http.Request) {
 func WsHandler(w http.ResponseWriter, r *http.Request) {
 	tokenStr, ok := r.Context().Value("tokenStr").(string)
 	if !ok {
+		log.Error("not found tokenStr in request context")
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
 	conn, err := upgrader.Upgrade(w, r, nil)
 	if err != nil {
+		log.Error(err.Error())
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
-	err = s.ConnectUser(tokenStr, conn)
+	err = server.ConnectUser(tokenStr, conn)
 	if err != nil {
+		log.Error(err.Error())
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
-	w.WriteHeader(http.StatusOK)
-}
-
-// NicknameHandler - Handles the attempt to chang the nickname
-func NicknameHandler(w http.ResponseWriter, r *http.Request) {
-	w.WriteHeader(http.StatusOK)
-	fmt.Fprint(w, "NicknameHandler")
-}
-
-// CreateRoomHandler - The endpoint to create a new room when POST is sent
-func CreateRoomHandler(w http.ResponseWriter, r *http.Request) {
-	w.WriteHeader(http.StatusOK)
-	fmt.Fprint(w, "CreateRoomHandler")
-}
-
-// SwitchRoomHandler - The endpoint to switch user's room when PUT is sent
-func SwitchRoomHandler(w http.ResponseWriter, r *http.Request) {
-	w.WriteHeader(http.StatusOK)
-	fmt.Fprint(w, "SwitchRoomHandler")
-}
-
-// UsersHandler - Returns the list of all the users in the same room as the one
-// requesting
-func UsersHandler(w http.ResponseWriter, r *http.Request) {
-	w.WriteHeader(http.StatusOK)
-	fmt.Fprint(w, "UsersHandler")
-}
-
-// ExitHandler - Gracefully disconnects the user from the server
-func ExitHandler(w http.ResponseWriter, r *http.Request) {
-	w.WriteHeader(http.StatusOK)
-	fmt.Fprint(w, "ExitHandler")
 }
