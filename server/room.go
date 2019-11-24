@@ -35,7 +35,7 @@ func NewRoom(name string) *Room {
 // BroadcastChan: Messages to be broadcasted
 func (r *Room) Run() {
 	wg := sync.WaitGroup{}
-	wg.Add(3)
+	wg.Add(2)
 	go func() {
 		defer wg.Done()
 		for client := range r.RegisterChan {
@@ -71,7 +71,7 @@ func (r *Room) Broadcast(message Message) {
 	r.Lock.Lock()
 	defer r.Lock.Unlock()
 	for client := range r.Clients {
-		client.SendChan <- message
+		client.Send(message)
 	}
 }
 

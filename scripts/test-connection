@@ -1,8 +1,43 @@
 #!/usr/bin/env sh
+HOST="localhost"
+PORT="7000"
+NICKNAME=""
+
+while [ $# -gt 0 ]
+do
+  KEY=$1
+  case $KEY in
+    -n|--nickname)
+      NICKNAME=$2
+      shift
+      shift
+      ;;
+    -h|--host)
+      HOST=$2
+      shift
+      shift
+      ;;
+    -p|--port)
+      PORT=$2
+      shift
+      shift
+      ;;
+  esac
+done
+
+if [ "$NICKNAME" = "" ]; then
+  echo "must inform nickname"
+  exit 1
+fi
+
+echo "HOST     = $HOST"
+echo "PORT     = $PORT"
+echo "NICKNAME = $NICKNAME"
+
 TOKEN=$(curl --request POST \
   --url http://localhost:7000/auth \
   --header 'content-type: application/x-www-form-urlencoded' \
-  --data nickname=test4 | jq -r ".token")
+  --data nickname=$1 | jq -r ".token")
 
 curl --include \
   --no-buffer \

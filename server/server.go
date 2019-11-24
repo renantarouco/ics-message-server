@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"strings"
+	"sync"
 
 	"github.com/gorilla/websocket"
 	log "github.com/sirupsen/logrus"
@@ -18,6 +19,7 @@ type Server struct {
 	// AuthenticatedUsers - Holds token and User struct
 	AuthenticatedUsers map[string]*User
 	ConnectedClients   map[string]*Client
+	Lock               sync.Mutex
 }
 
 // NewServer - Returns a fresh instance of a Server
@@ -28,6 +30,7 @@ func NewServer() *Server {
 		Rooms:              map[string]*Room{},
 		AuthenticatedUsers: map[string]*User{},
 		ConnectedClients:   map[string]*Client{},
+		Lock:               sync.Mutex{},
 	}
 }
 
@@ -57,7 +60,7 @@ func (s *Server) ConnectUser(tokenStr string, conn *websocket.Conn) error {
 	client := NewClient(conn, user, globalRoom)
 	s.ConnectedClients[tokenStr] = client
 	globalRoom.RegisterChan <- client
-	return client.Run()
+	return client.ReceiveRoutine()
 }
 
 // NewRoom - Creates a new room in the server
@@ -121,7 +124,7 @@ func (s *Server) ListUsers(client *Client) error {
 		nicknames = append(nicknames, client.Nickname())
 	}
 	message := Message{"system", strings.Join(nicknames, "\n")}
-	client.SendChan <- message
+	client.Send(message)
 	return nil
 }
 
@@ -132,7 +135,7 @@ func (s *Server) ListRooms(client *Client) error {
 		rooms = append(rooms, roomID)
 	}
 	message := Message{"system", strings.Join(rooms, "\n")}
-	client.SendChan <- message
+	client.Send(message)
 	return nil
 }
 
@@ -140,8 +143,11 @@ func (s *Server) ListRooms(client *Client) error {
 func (s *Server) Exit(client *Client) error {
 	client.Room.UnregisterChan <- client
 	client.Stop()
+	s.Lock.Lock()
+	defer s.Lock.Unlock()
 	delete(s.ConnectedClients, client.TokenStr())
 	delete(s.AuthenticatedUsers, client.TokenStr())
 	delete(s.Users, client.Nickname())
+	log.Debugf("%s user left the server", client.Nickname())
 	return nil
 }

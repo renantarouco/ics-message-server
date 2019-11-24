@@ -52,6 +52,18 @@ func ExecuteCommand(client *Client, command Command) error {
 			return errors.New("cannot parse 'room' arg of switchroom command")
 		}
 		return s.SwitchRoom(client, roomID)
+	case CommandCreateRoom:
+		roomID, ok := command.Args["name"].(string)
+		if !ok {
+			return errors.New("cannot parse 'name' arg of createroom command")
+		}
+		return s.CreateRoom(client, roomID)
+	case CommandListUsers:
+		return s.ListUsers(client)
+	case CommandListRooms:
+		return s.ListRooms(client)
+	case CommandExit:
+		return s.Exit(client)
 	}
 	return nil
 }
