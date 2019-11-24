@@ -35,9 +35,9 @@ echo "PORT     = $PORT"
 echo "NICKNAME = $NICKNAME"
 
 TOKEN=$(curl --request POST \
-  --url http://localhost:7000/auth \
+  --url http://$HOST:$PORT/auth \
   --header 'content-type: application/x-www-form-urlencoded' \
-  --data nickname=$1 | jq -r ".token")
+  --data nickname=$NICKNAME | jq -r ".token")
 
 curl --include \
   --no-buffer \
@@ -45,8 +45,8 @@ curl --include \
   --header "Authorization: Bearer $TOKEN" \
   --header "Connection: Upgrade" \
   --header "Upgrade: websocket" \
-  --header "Host: localhost:7000" \
+  --header "Host: $HOST:$PORT" \
   --header "Origin: http://example.com:80" \
   --header "Sec-WebSocket-Key: SGVsbG8sIHdvcmxkIQ==" \
   --header "Sec-WebSocket-Version: 13" \
-  http://localhost:7000/ws
+  http://$HOST:$PORT/ws

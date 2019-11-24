@@ -11,8 +11,9 @@ func init() {
 	// Sesitive data
 	viper.SetEnvPrefix("ICS")
 	viper.BindEnv("ENVIRONMENT")
+	viper.BindEnv("JWT_KEY")
 
-	switch viper.Get("ENVIRONMENT") {
+	switch viper.GetString("ENVIRONMENT") {
 	case "DEVELOPMENT":
 		log.SetLevel(log.DebugLevel)
 	case "RELEASE":

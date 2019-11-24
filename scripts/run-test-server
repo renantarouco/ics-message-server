@@ -1,0 +1,4 @@
+#!/usr/bin/env sh
+ICS_ENVIRONMENT="DEVELOPMENT"
+ICS_JWT_KEY="test_key"
+go run -race .
