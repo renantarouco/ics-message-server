@@ -42,12 +42,8 @@ func (r *Room) Run() {
 			r.Lock.Lock()
 			r.Clients[client] = true
 			r.Lock.Unlock()
-			message := Message{
-				"system",
-				fmt.Sprintf("%s joined", client.Nickname()),
-			}
 			log.Debugf("%s user connected to %s room", client.Nickname(), r.Name)
-			go r.Broadcast(message)
+			go r.Broadcast("system", fmt.Sprintf("%s joined", client.Nickname()))
 		}
 	}()
 	go func() {
@@ -64,14 +60,15 @@ func (r *Room) Run() {
 		}
 	}()
 	wg.Wait()
+	log.Infof("%s room thread finished", r.Name)
 }
 
 // Broadcast - Sends a message to all connected clients.
-func (r *Room) Broadcast(message Message) {
+func (r *Room) Broadcast(from, body string) {
 	r.Lock.Lock()
 	defer r.Lock.Unlock()
 	for client := range r.Clients {
-		client.Send(message)
+		client.Send(from, body)
 	}
 }
 

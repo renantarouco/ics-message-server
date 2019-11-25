@@ -20,7 +20,8 @@ func ValidateTokenMiddleware(next http.Handler) http.Handler {
 				return
 			}
 		}
-		authHeader := r.Header.Get("Authorization")
+		authHeader := r.Header.Get("Sec-WebSocket-Protocol")
+		log.Debugf("authheader<%s>", authHeader)
 		tokenStr := strings.TrimPrefix(authHeader, "Bearer")
 		tokenStr = strings.TrimLeft(tokenStr, " ")
 		log.Debugf("token<%s>", tokenStr)

@@ -42,7 +42,7 @@ TOKEN=$(curl --request POST \
 curl --include \
   --no-buffer \
   --header 'Accept: application/json' \
-  --header "Authorization: Bearer $TOKEN" \
+  --header "Sec-WebSocket-Protocol: $TOKEN" \
   --header "Connection: Upgrade" \
   --header "Upgrade: websocket" \
   --header "Host: $HOST:$PORT" \

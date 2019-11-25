@@ -58,13 +58,11 @@ func (c *Client) ReceiveRoutine() error {
 			var command Command
 			err := json.Unmarshal(messageData, &command)
 			if err != nil {
-				message := Message{"system", "error parsing your message"}
-				c.Send(message)
+				c.Send("system", "error parsing your message")
 				continue
 			}
 			if err := ExecuteCommand(c, command); err != nil {
-				message := Message{"system", err.Error()}
-				c.Send(message)
+				c.Send("system", err.Error())
 			}
 		case websocket.BinaryMessage:
 			log.Debugf("attempted binary message")
@@ -78,7 +76,8 @@ func (c *Client) ReceiveRoutine() error {
 }
 
 // Send - Sends a message to the client
-func (c *Client) Send(message Message) error {
+func (c *Client) Send(from, body string) error {
+	message := Message{from, body}
 	encodedMessage, err := json.Marshal(message)
 	if err != nil {
 		return fmt.Errorf("error decoding message from %s to %s", message.From, c.Nickname())

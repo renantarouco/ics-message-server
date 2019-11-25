@@ -74,8 +74,7 @@ func (s *Server) NewRoom(id string) *Room {
 
 // SendMessage - Sends a message from a given client
 func (s *Server) SendMessage(client *Client, from, body string) error {
-	message := Message{from, body}
-	client.Room.Broadcast(message)
+	client.Room.Broadcast(from, body)
 	return nil
 }
 
@@ -123,8 +122,7 @@ func (s *Server) ListUsers(client *Client) error {
 	for client := range client.Room.Clients {
 		nicknames = append(nicknames, client.Nickname())
 	}
-	message := Message{"system", strings.Join(nicknames, "\n")}
-	client.Send(message)
+	client.Send("system", strings.Join(nicknames, "\n"))
 	return nil
 }
 
@@ -134,8 +132,7 @@ func (s *Server) ListRooms(client *Client) error {
 	for roomID := range s.Rooms {
 		rooms = append(rooms, roomID)
 	}
-	message := Message{"system", strings.Join(rooms, "\n")}
-	client.Send(message)
+	client.Send("system", strings.Join(rooms, "\n"))
 	return nil
 }
 

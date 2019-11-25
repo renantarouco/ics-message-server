@@ -21,6 +21,9 @@ func init() {
 	}
 	log.Infof("log configured to %s mode", log.GetLevel().String())
 
+	log.Infof("ICS_ENVIRONMENT = %s", viper.GetString("ENVIRONMENT"))
+	log.Debugf("ICS_JWT_KEY     = %s", viper.GetString("JWT_KEY"))
+
 	// Static values
 	viper.AddConfigPath(".")
 	viper.SetConfigName("config")
