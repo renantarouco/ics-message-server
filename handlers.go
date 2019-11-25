@@ -22,13 +22,7 @@ func AuthHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	nickname := r.PostFormValue("nickname")
-	tokenStr, err := NewTokenString(server.ID(), r.RemoteAddr)
-	if err != nil {
-		log.Error(err.Error())
-		w.WriteHeader(http.StatusForbidden)
-		return
-	}
-	err = server.AuthenticateUser(nickname, tokenStr)
+	tokenStr, err := server.AuthenticateUser(nickname, r.RemoteAddr)
 	if err != nil {
 		log.Error(err.Error())
 		w.WriteHeader(http.StatusForbidden)

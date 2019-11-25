@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"strings"
 
+	"github.com/renantarouco/ics-message-server/server"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -25,7 +26,7 @@ func ValidateTokenMiddleware(next http.Handler) http.Handler {
 		tokenStr := strings.TrimPrefix(authHeader, "Bearer")
 		tokenStr = strings.TrimLeft(tokenStr, " ")
 		log.Debugf("token<%s>", tokenStr)
-		err := IsTokenValid(tokenStr)
+		err := server.IsTokenValid(tokenStr)
 		if err != nil {
 			log.Error(err.Error())
 			w.WriteHeader(http.StatusUnauthorized)

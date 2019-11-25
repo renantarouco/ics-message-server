@@ -35,16 +35,20 @@ func NewServer() *Server {
 }
 
 // AuthenticateUser - Authenticates an incoming user to the server
-func (s *Server) AuthenticateUser(nickname, tokenStr string) error {
+func (s *Server) AuthenticateUser(nickname, clientAddr string) (string, error) {
 	if _, ok := s.Users[nickname]; ok {
-		return fmt.Errorf("%s already in use", nickname)
+		return "", fmt.Errorf("%s already in use", nickname)
 	}
 	if err := ValidateNickname(nickname); err != nil {
-		return err
+		return "", err
+	}
+	tokenStr, err := NewTokenString(s.ID, clientAddr)
+	if err != nil {
+		return "", err
 	}
 	s.Users[nickname] = true
 	s.AuthenticatedUsers[tokenStr] = NewUser(nickname, tokenStr)
-	return nil
+	return tokenStr, nil
 }
 
 // ConnectUser - Effectively connects a user to receive/send messages
@@ -108,9 +112,13 @@ func (s *Server) CreateRoom(client *Client, roomID string) error {
 	if ok {
 		return fmt.Errorf("room %s already exists", roomID)
 	}
-	s.NewRoom(roomID)
-	err := s.SwitchRoom(client, roomID)
-	if err != nil {
+
+	if err := BasicNameValidation(roomID); err != nil {
+		return err
+	}
+	room := s.NewRoom(roomID)
+	s.Rooms[roomID] = room
+	if err := s.SwitchRoom(client, roomID); err != nil {
 		return err
 	}
 	return nil
@@ -122,8 +130,7 @@ func (s *Server) ListUsers(client *Client) error {
 	for client := range client.Room.Clients {
 		nicknames = append(nicknames, client.Nickname())
 	}
-	client.Send("system", strings.Join(nicknames, "\n"))
-	return nil
+	return client.Send("system", strings.Join(nicknames, "\n"))
 }
 
 // ListRooms - Lists all available rooms
@@ -132,8 +139,7 @@ func (s *Server) ListRooms(client *Client) error {
 	for roomID := range s.Rooms {
 		rooms = append(rooms, roomID)
 	}
-	client.Send("system", strings.Join(rooms, "\n"))
-	return nil
+	return client.Send("system", strings.Join(rooms, "\n"))
 }
 
 // Exit - Clients disconnection function

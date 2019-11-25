@@ -18,7 +18,7 @@ func ID() string {
 }
 
 // AuthenticateUser - Sigleton function to authenticate users
-func AuthenticateUser(nickname, tokenStr string) error {
+func AuthenticateUser(nickname, tokenStr string) (string, error) {
 	return s.AuthenticateUser(nickname, tokenStr)
 }
 
