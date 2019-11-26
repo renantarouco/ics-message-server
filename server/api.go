@@ -63,7 +63,11 @@ func ExecuteCommand(client *Client, command Command) error {
 	case CommandListRooms:
 		return s.ListRooms(client)
 	case CommandExit:
-		return s.Exit(client)
+		roomID, ok := command.Args["room"].(string)
+		if !ok {
+			return errors.New("cannot parse 'room' arg of createroom command")
+		}
+		return s.Exit(client, roomID)
 	}
 	return nil
 }

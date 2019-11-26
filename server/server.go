@@ -57,23 +57,18 @@ func (s *Server) ConnectUser(tokenStr string, conn *websocket.Conn) error {
 	if !ok {
 		return errors.New("user not authenticated")
 	}
+	client := NewClient(conn, user)
+
 	globalRoom, ok := s.Rooms["global"]
 	if !ok {
-		globalRoom = s.NewRoom("global")
+		globalRoom = NewRoom("global")
+		s.Rooms["global"] = globalRoom
+		log.Debug("created global room")
 	}
-	client := NewClient(conn, user, globalRoom)
 	s.ConnectedClients[tokenStr] = client
-	globalRoom.RegisterChan <- client
-	return client.ReceiveRoutine()
-}
+	globalRoom.Register(client)
 
-// NewRoom - Creates a new room in the server
-func (s *Server) NewRoom(id string) *Room {
-	room := NewRoom(id)
-	s.Rooms[id] = room
-	go room.Run()
-	log.Debugf("created %s room", id)
-	return room
+	return client.ReceiveRoutine()
 }
 
 // SendMessage - Sends a message from a given client
@@ -100,9 +95,10 @@ func (s *Server) SwitchRoom(client *Client, roomID string) error {
 	if !ok {
 		return fmt.Errorf("room %s does not exist", roomID)
 	}
-	client.Room.UnregisterChan <- client
-	room.RegisterChan <- client
-	client.Room = room
+	if client.Room != nil {
+		client.Room.Unregister(client)
+	}
+	room.Register(client)
 	return nil
 }
 
@@ -112,12 +108,12 @@ func (s *Server) CreateRoom(client *Client, roomID string) error {
 	if ok {
 		return fmt.Errorf("room %s already exists", roomID)
 	}
-
 	if err := BasicNameValidation(roomID); err != nil {
 		return err
 	}
-	room := s.NewRoom(roomID)
+	room := NewRoom(roomID)
 	s.Rooms[roomID] = room
+	log.Debug("created global room")
 	if err := s.SwitchRoom(client, roomID); err != nil {
 		return err
 	}
@@ -143,9 +139,12 @@ func (s *Server) ListRooms(client *Client) error {
 }
 
 // Exit - Clients disconnection function
-func (s *Server) Exit(client *Client) error {
-	client.Room.UnregisterChan <- client
-	client.Stop()
+func (s *Server) Exit(client *Client, roomID string) error {
+	client.Room.Unregister(client)
+	if len(s.Rooms[roomID].Clients) == 0 {
+		delete(s.Rooms, roomID)
+		log.Debugf("%s room deleted becouse it's empty", client.Nickname())
+	}
 	s.Lock.Lock()
 	defer s.Lock.Unlock()
 	delete(s.ConnectedClients, client.TokenStr())

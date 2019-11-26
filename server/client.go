@@ -13,16 +13,14 @@ type Client struct {
 	Conn     *websocket.Conn
 	UserInfo *User
 	Room     *Room
-	RoomChan chan *Room
 }
 
 // NewClient - Creates a new client structure
-func NewClient(conn *websocket.Conn, userInfo *User, room *Room) *Client {
+func NewClient(conn *websocket.Conn, userInfo *User) *Client {
 	return &Client{
 		Conn:     conn,
 		UserInfo: userInfo,
-		Room:     room,
-		RoomChan: make(chan *Room),
+		Room:     nil,
 	}
 }
 
@@ -50,7 +48,7 @@ func (c *Client) ReceiveRoutine() error {
 				log.Debug(err.Error())
 				return err
 			}
-			ExecuteCommand(c, Command{CommandExit, nil})
+			ExecuteCommand(c, Command{CommandExit, map[string]interface{}{"room": c.Room.Name}})
 			return nil
 		}
 		switch msgType {
@@ -83,9 +81,4 @@ func (c *Client) Send(from, body string) error {
 		return fmt.Errorf("error decoding message from %s to %s", message.From, c.Nickname())
 	}
 	return c.Conn.WriteMessage(websocket.TextMessage, encodedMessage)
-}
-
-// Stop - Gracefully stops client routines closing all of its channels
-func (c *Client) Stop() {
-	close(c.RoomChan)
 }
