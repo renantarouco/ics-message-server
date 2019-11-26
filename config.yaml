@@ -1,1 +1,3 @@
 addr: ":7000"
+ns_endpoints:
+- localhost:2379

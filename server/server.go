@@ -13,6 +13,7 @@ import (
 // Server - Central struct for message server representation
 type Server struct {
 	ID string
+	NS *NameService
 	// Users - Holds users nickname to check uniqueness
 	Users map[string]bool
 	Rooms map[string]*Room
@@ -23,9 +24,10 @@ type Server struct {
 }
 
 // NewServer - Returns a fresh instance of a Server
-func NewServer() *Server {
+func NewServer(nsEndpoints []string) *Server {
 	return &Server{
 		ID:                 "unamed",
+		NS:                 NewNameService(nsEndpoints),
 		Users:              map[string]bool{},
 		Rooms:              map[string]*Room{},
 		AuthenticatedUsers: map[string]*User{},
@@ -36,18 +38,13 @@ func NewServer() *Server {
 
 // AuthenticateUser - Authenticates an incoming user to the server
 func (s *Server) AuthenticateUser(nickname, clientAddr string) (string, error) {
-	if _, ok := s.Users[nickname]; ok {
-		return "", fmt.Errorf("%s already in use", nickname)
-	}
-	if err := ValidateNickname(nickname); err != nil {
-		return "", err
-	}
+	err := s.NS.CheckNickname(nickname)
 	tokenStr, err := NewTokenString(s.ID, clientAddr)
 	if err != nil {
 		return "", err
 	}
-	s.Users[nickname] = true
-	s.AuthenticatedUsers[tokenStr] = NewUser(nickname, tokenStr)
+	user := NewUser(nickname, clientAddr, tokenStr)
+	s.NS.SaveUser(*user)
 	return tokenStr, nil
 }
 

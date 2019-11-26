@@ -3,6 +3,7 @@ package main
 import (
 	"net/http"
 
+	"github.com/renantarouco/ics-message-server/server"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
 )
@@ -34,6 +35,8 @@ func init() {
 	}
 
 	log.Info("server configuration loaded")
+
+	server.Init()
 }
 
 func main() {

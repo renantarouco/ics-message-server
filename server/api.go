@@ -4,12 +4,17 @@ import (
 	"errors"
 
 	"github.com/gorilla/websocket"
+	log "github.com/sirupsen/logrus"
+	"github.com/spf13/viper"
 )
 
 var s *Server
 
-func init() {
-	s = NewServer()
+// Init - Initializes the single server instance
+func Init() {
+	nsEndpoints := viper.GetStringSlice("ns_endpoints")
+	log.Infof("name service endpoints: %v", nsEndpoints)
+	s = NewServer(nsEndpoints)
 }
 
 // ID - Returns the singleton ID
