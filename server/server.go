@@ -1,8 +1,6 @@
 package server
 
 import (
-	"errors"
-	"fmt"
 	"strings"
 	"sync"
 
@@ -12,33 +10,29 @@ import (
 
 // Server - Central struct for message server representation
 type Server struct {
-	ID string
-	NS *NameService
-	// Users - Holds users nickname to check uniqueness
-	Users map[string]bool
-	Rooms map[string]*Room
-	// AuthenticatedUsers - Holds token and User struct
-	AuthenticatedUsers map[string]*User
-	ConnectedClients   map[string]*Client
-	Lock               sync.Mutex
+	ID               string
+	NS               *NameService
+	Rooms            map[string]*Room
+	ConnectedClients map[string]*Client
+	Lock             sync.Mutex
 }
 
 // NewServer - Returns a fresh instance of a Server
 func NewServer(nsEndpoints []string) *Server {
 	return &Server{
-		ID:                 "unamed",
-		NS:                 NewNameService(nsEndpoints),
-		Users:              map[string]bool{},
-		Rooms:              map[string]*Room{},
-		AuthenticatedUsers: map[string]*User{},
-		ConnectedClients:   map[string]*Client{},
-		Lock:               sync.Mutex{},
+		ID:               "unamed",
+		NS:               NewNameService(nsEndpoints),
+		Rooms:            map[string]*Room{},
+		ConnectedClients: map[string]*Client{},
+		Lock:             sync.Mutex{},
 	}
 }
 
 // AuthenticateUser - Authenticates an incoming user to the server
 func (s *Server) AuthenticateUser(nickname, clientAddr string) (string, error) {
-	err := s.NS.CheckNickname(nickname)
+	if err := s.NS.ReserveNickname(nickname); err != nil {
+		return "", err
+	}
 	tokenStr, err := NewTokenString(s.ID, clientAddr)
 	if err != nil {
 		return "", err
@@ -50,21 +44,15 @@ func (s *Server) AuthenticateUser(nickname, clientAddr string) (string, error) {
 
 // ConnectUser - Effectively connects a user to receive/send messages
 func (s *Server) ConnectUser(tokenStr string, conn *websocket.Conn) error {
-	user, ok := s.AuthenticatedUsers[tokenStr]
-	if !ok {
-		return errors.New("user not authenticated")
+	user, err := s.NS.GetUser(tokenStr)
+	if err != nil {
+		return err
 	}
 	client := NewClient(conn, user)
-
-	globalRoom, ok := s.Rooms["global"]
-	if !ok {
-		globalRoom = NewRoom("global")
-		s.Rooms["global"] = globalRoom
-		log.Debug("created global room")
+	if err := s.CreateRoom(client, "global"); err != nil {
+		return err
 	}
 	s.ConnectedClients[tokenStr] = client
-	globalRoom.Register(client)
-
 	return client.ReceiveRoutine()
 }
 
@@ -76,12 +64,12 @@ func (s *Server) SendMessage(client *Client, from, body string) error {
 
 // SetNickname - Sets a client nickname
 func (s *Server) SetNickname(client *Client, nickname string) error {
-	_, ok := s.Users[nickname]
-	if ok {
-		return fmt.Errorf("nickname %s already taken", nickname)
+	if err := s.NS.ReserveNickname(nickname); err != nil {
+		return err
 	}
-	delete(s.Users, client.Nickname())
-	s.Users[nickname] = true
+	if err := s.NS.ChangeUserNickname(client.TokenStr(), nickname); err != nil {
+		return err
+	}
 	client.UserInfo.Nickname = nickname
 	return nil
 }
@@ -89,8 +77,12 @@ func (s *Server) SetNickname(client *Client, nickname string) error {
 // SwitchRoom - Changes the client's room
 func (s *Server) SwitchRoom(client *Client, roomID string) error {
 	room, ok := s.Rooms[roomID]
-	if !ok {
-		return fmt.Errorf("room %s does not exist", roomID)
+	if ok {
+		room, err := s.NS.GetRoom(roomID)
+		if err != nil {
+			return err
+		}
+		s.Rooms[roomID] = room
 	}
 	if client.Room != nil {
 		client.Room.Unregister(client)
@@ -101,16 +93,12 @@ func (s *Server) SwitchRoom(client *Client, roomID string) error {
 
 // CreateRoom - Client command to create a room
 func (s *Server) CreateRoom(client *Client, roomID string) error {
-	_, ok := s.Rooms[roomID]
-	if ok {
-		return fmt.Errorf("room %s already exists", roomID)
-	}
-	if err := BasicNameValidation(roomID); err != nil {
+	if err := s.NS.ReserveRoomName(roomID); err != nil {
 		return err
 	}
 	room := NewRoom(roomID)
 	s.Rooms[roomID] = room
-	log.Debug("created global room")
+	log.Debugf("created %s room", roomID)
 	if err := s.SwitchRoom(client, roomID); err != nil {
 		return err
 	}
@@ -119,18 +107,18 @@ func (s *Server) CreateRoom(client *Client, roomID string) error {
 
 // ListUsers - List users in the clients room
 func (s *Server) ListUsers(client *Client) error {
-	nicknames := []string{}
-	for client := range client.Room.Clients {
-		nicknames = append(nicknames, client.Nickname())
+	nicknames, err := s.NS.GetUsersList(client.Room.Name)
+	if err != nil {
+		return err
 	}
 	return client.Send("system", strings.Join(nicknames, "\n"))
 }
 
 // ListRooms - Lists all available rooms
 func (s *Server) ListRooms(client *Client) error {
-	rooms := []string{}
-	for roomID := range s.Rooms {
-		rooms = append(rooms, roomID)
+	rooms, err := s.NS.GetRoomsList()
+	if err != nil {
+		return err
 	}
 	return client.Send("system", strings.Join(rooms, "\n"))
 }
@@ -145,8 +133,6 @@ func (s *Server) Exit(client *Client, roomID string) error {
 	s.Lock.Lock()
 	defer s.Lock.Unlock()
 	delete(s.ConnectedClients, client.TokenStr())
-	delete(s.AuthenticatedUsers, client.TokenStr())
-	delete(s.Users, client.Nickname())
 	log.Debugf("%s user left the server", client.Nickname())
 	return nil
 }

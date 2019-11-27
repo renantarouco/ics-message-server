@@ -1,0 +1,91 @@
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: ics
+  labels:
+    name: ics
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  labels:
+    app: message-server
+  name: message-server
+  namespace: ics
+spec:
+  containers:
+  - command:
+    - /ics-message-server
+    - --id
+    - 1
+    - --port
+    - 7000
+    - --cluster
+    - http://etcd1:7999,http://etcd2:7999,http://etcd3:7999
+    image: renantarouco/ics-message-server:latest
+    name: etcd1
+    ports:
+    - containerPort: 7000
+      name: client
+      protocol: TCP
+    - containerPort: 7999
+      name: server
+      protocol: TCP
+  restartPolicy: Always
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  labels:
+    app: message-server
+  name: message-server
+  namespace: ics
+spec:
+  containers:
+  - command:
+    - /ics-message-server
+    - --id
+    - 2
+    - --cluster
+    - http://etcd1:7999,http://etcd2:7999,http://etcd3:7999
+    - --port
+    - 7000
+    image: renantarouco/ics-message-server:latest
+    name: etcd2
+    ports:
+    - containerPort: 7000
+      name: client
+      protocol: TCP
+    - containerPort: 7999
+      name: server
+      protocol: TCP
+  restartPolicy: Always
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  labels:
+    app: message-server
+  name: message-server
+  namespace: ics
+spec:
+  containers:
+  - command:
+    - /ics-message-server
+    - --id
+    - 3
+    - --cluster
+    - http://etcd1:7999,http://etcd2:7999,http://etcd3:7999
+    - --port
+    - 7000
+    image: renantarouco/ics-message-server:latest
+    name: etcd1
+    ports:
+    - containerPort: 7000
+      name: client
+      protocol: TCP
+    - containerPort: 7999
+      name: server
+      protocol: TCP
+  restartPolicy: Always

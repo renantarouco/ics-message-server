@@ -5,6 +5,7 @@ import (
 
 	"github.com/renantarouco/ics-message-server/server"
 	log "github.com/sirupsen/logrus"
+	"github.com/spf13/pflag"
 	"github.com/spf13/viper"
 )
 
@@ -40,6 +41,13 @@ func init() {
 }
 
 func main() {
+	id := pflag.UintP("id", "i", 1, "Node ID")
+	port := pflag.UintP("port", "p", 7000, "Client access port")
+	cluster := pflag.StringSliceP("cluster", "c", []string{"http://127.0.0.1:7000"}, "Cluster peers")
+	pflag.Parse()
+	log.Infof("NODE_ID =     %d", *id)
+	log.Infof("CLIENT_PORT = %d", *port)
+	log.Infof("CLUSTER =     %v", *cluster)
 	// Running HTTP API
 	addr := viper.GetString("addr")
 	log.Infof("message server listening on %s", addr)
